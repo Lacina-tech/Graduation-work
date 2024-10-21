@@ -2,7 +2,6 @@ import cv2
 import numpy
 import os
 import mtcnn
-import torch
 
 
 class DataPreprocessing:
@@ -12,7 +11,7 @@ class DataPreprocessing:
         # Inicializace MTCNN
         self.photo_face_detector = mtcnn.MTCNN()  # Inicializace bez specifikace zařízení
         # Inicializace YOLO
-        self.video_face_detector = torch.hub.load("ultralytics/yolov5", "yolov5s")
+        self.video_face_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
     def detect_faces_in_photo(self):
             """
@@ -41,22 +40,24 @@ class DataPreprocessing:
         return self.data
     
     def detect_faces_in_video(self):
-        """"""
-        results = self.video_face_detector(self.data)
-        face_boxes = []
-        # Projdeme všechny detekované objekty
-        for result in results.xyxy[0]:
-            x1, y1, x2, y2, conf, cls = result
-            # Pokud je detekovaná třída "obličej" (v YOLOv5 to může být class_id 0 nebo jiný v závislosti na datasetu)
-            if int(cls) == 0:  # Zkontroluj, že cls odpovídá obličeji (musíš ověřit class_id pro obličej v konkrétním modelu)
-                face_boxes.append((int(x1), int(y1), int(x2), int(y2)))
+        """
+        Detekuje obličeje na obrázku pomocí Haar cascade.
+        """
+        # Převeďte obrázek na odstíny šedi
+        gray = cv2.cvtColor(self.data, cv2.COLOR_BGR2GRAY)
+
+        # Detekce obličeje
+        faces = self.video_face_detector.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
         
-        return face_boxes
+        return faces
 
     def draw_faces_in_video(self, faces):
-        for (x1, y1, x2, y2) in faces:
-                    cv2.rectangle(self.data, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Zelené obdélníky
-                
+        """
+        Nakreslí obdélníky kolem detekovaných obličejů na originálním barevném obrázku.
+        """
+        for (x, y, w, h) in faces:
+            cv2.rectangle(self.data, (x, y), (x + w, y + h), (255, 0, 0), 2)  # Modrý obdélník
+
         return self.data
 
     def process_images(self, in_folder=r"c:\Users\uzivatel\Dropbox\MP\Program\test.org", out_folder=r"c:\Users\uzivatel\Dropbox\MP\Program\test.2"):
