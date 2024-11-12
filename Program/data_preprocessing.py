@@ -8,38 +8,10 @@ class DataPreprocessing:
     def __init__(self, data):
         self.data = data  # Ukládá obrázek jako instanční proměnnou
             
-        # Inicializace MTCNN
-        self.photo_face_detector = mtcnn.MTCNN()  # Inicializace bez specifikace zařízení
-        # Inicializace YOLO
+        # Inicializace Kaskád z OpenCV
         self.video_face_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-
-    def detect_faces_in_photo(self):
-            """
-            Detekuje obličeje na obrázku pomocí MTCNN detektoru
-            """
-
-            # Konvertujeme obrázek na RGB, protože MTCNN očekává RGB formát
-            rgb_image = cv2.cvtColor(self.data, cv2.COLOR_BGR2RGB)
-            # Detekujeme obličeje
-            faces = self.photo_face_detector.detect_faces(rgb_image)
-            # Vrátíme seznam souřadnic obdélníků (x, y, width, height)
-            face_boxes = []
-            for face in faces:
-                x, y, w, h = face['box']
-                face_boxes.append((x, y, w, h))
-                
-            return face_boxes
-
-    def draw_faces_in_photo(self, faces):
-        """
-        Nakreslí obdélníky kolem detekovaných obličejů na originálním barevném obrázku.
-        """
-        for (x, y, w, h) in faces:
-            cv2.rectangle(self.data, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Nakreslí obdélník kolem obličeje
-            print(f"Obdélník nakreslen kolem obličeje na pozici ({x}, {y}, {w}, {h})")  # Debug výstup
-        return self.data
     
-    def detect_faces_in_video(self):
+    def detect_faces(self):
         """
         Detekuje obličeje na obrázku pomocí Haar cascade.
         """
@@ -51,7 +23,7 @@ class DataPreprocessing:
         
         return faces
 
-    def draw_faces_in_video(self, faces):
+    def draw_faces(self, faces):
         """
         Nakreslí obdélníky kolem detekovaných obličejů na originálním barevném obrázku.
         """

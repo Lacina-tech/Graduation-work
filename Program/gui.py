@@ -85,8 +85,8 @@ class PhotoUploadPage(QtWidgets.QWidget):
             processor = DataPreprocessing(self.cv_image)
         
             # Předzpracuje obrázek a detekuje obličeje
-            faces = processor.detect_faces_in_photo()
-            edited_image = processor.draw_faces_in_photo(faces)
+            faces = processor.detect_faces()
+            edited_image = processor.draw_faces(faces)
 
             # Změna typz barev z BRG na RGB (OpenCV používá BRG = tzn. bez převodu to změní barvy)
             edited_image = cv2.cvtColor(edited_image, cv2.COLOR_BGR2RGB)
@@ -236,8 +236,8 @@ class LiveRecordingPage(QtWidgets.QWidget):
 
                     # Detekce obličejů
 #                    print("Rozpoznávání obličejů je aktivní.")  # Diagnostika
-                    faces = processor.detect_faces_in_video()  # Detekce obličejů
-                    edited_video = processor.draw_faces_in_video(faces)  # Nakreslí obdélníky kolem obličejů
+                    faces = processor.detect_faces()  # Detekce obličejů
+                    edited_video = processor.draw_faces(faces)  # Nakreslí obdélníky kolem obličejů
 
                     # Zobrazení upraveného snímku a jeho úprava do formátu pro QtPy po zapnutí rozpoznávání obličeje
                     edited_video = cv2.cvtColor(edited_video, cv2.COLOR_BGR2RGB)
