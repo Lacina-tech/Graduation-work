@@ -313,7 +313,7 @@ class Sidebar(QtWidgets.QWidget):
 
         # Vytvoření hlavičky lišty
         # Vložení tématického obrázku a textu
-        self.pixmap = QtGui.QPixmap(r"Program\gui_pictures\sidebar\logo_face_recognition.png") # Nahrání obrázku do paměti
+        self.pixmap = QtGui.QPixmap(r"gui_pictures\sidebar\logo_face_recognition.png") # Nahrání obrázku do paměti
         self.icon = QtWidgets.QLabel(self) 
         self.text = QtWidgets.QLabel("Rozpoznávání\nobličeje", self)
         # Vytvoření horizontálního layoutu pro obrázek s textem
@@ -328,10 +328,10 @@ class Sidebar(QtWidgets.QWidget):
         sidebar_layout.addSpacing(40)
 
         # Vytvoří tlačítka
-        self.sidebar_button_about = self.create_sidebar_button("   O Aplikaci",r"Program\gui_pictures\sidebar\about.png", 0)
-        self.sidebar_button_photo_upload = self.create_sidebar_button("   Nahrát Fotku",r"Program\gui_pictures\sidebar\photo_upload.png", 1)
-        self.sidebar_button_live_recording = self.create_sidebar_button("   Živé Snímání",r"Program\gui_pictures\sidebar\live_recording.png", 2)
-        self.sidebar_button_add_face = self.create_sidebar_button("   Přidat Obličej",r"Program\gui_pictures\sidebar\add_face.png", 3)
+        self.sidebar_button_about = self.create_sidebar_button("   O Aplikaci",r"gui_pictures\sidebar\about.png", 0)
+        self.sidebar_button_photo_upload = self.create_sidebar_button("   Nahrát Fotku",r"gui_pictures\sidebar\photo_upload.png", 1)
+        self.sidebar_button_live_recording = self.create_sidebar_button("   Živé Snímání",r"gui_pictures\sidebar\live_recording.png", 2)
+        self.sidebar_button_add_face = self.create_sidebar_button("   Přidat Obličej",r"gui_pictures\sidebar\add_face.png", 3)
 
         # Umístí tlačítka do lišty
         sidebar_layout.addWidget(self.sidebar_button_about)
