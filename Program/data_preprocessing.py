@@ -13,10 +13,12 @@ class DataPreprocessing:
         """
         Detekuje obličeje na obrázku pomocí Haar cascade a vrací jen ty, kde byly nalezeny oči nebo brýle.
         """
+        # Proměnná, která určuje jak moc se zmenší původní data (Pro zmenšení náročnosti)
+        smallator = 1 # Zatím není používán
         # Načtení klasifikátoru
         net = cv2.dnn.readNetFromCaffe(self.config_path, self.model_path)
         # Snížení rozlišení vstupního obrázku na polovinu pro větší rychlost
-        small_data = cv2.resize(self.data, (self.data.shape[1] // 2, self.data.shape[0] // 2))
+        small_data = cv2.resize(self.data, (self.data.shape[1] // smallator, self.data.shape[0] // smallator))
         h, w = small_data.shape[:2]  # Výška a šířka zmenšeného obrázku
         # Upravení dat pro vyuřití CNN vDNN
         blob = cv2.dnn.blobFromImage(small_data, scalefactor=1.0, size=(300, 300), mean=(104.0, 177.0, 123.0))
@@ -29,7 +31,7 @@ class DataPreprocessing:
         for i in range(detections.shape[2]):
             confidence = detections[0, 0, i, 2]
             if confidence > 0.5:  # Práh důvěry
-                box = detections[0, 0, i, 3:7] * numpy.array([w, h, w, h]) * 2 # Výpočet souřadnic umístění obličeje
+                box = detections[0, 0, i, 3:7] * numpy.array([w, h, w, h]) * smallator # Výpočet souřadnic umístění obličeje
                 faces.append(box.astype("int"))
         return faces
 
