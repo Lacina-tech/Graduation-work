@@ -53,7 +53,7 @@ class DataPreprocessing:
         preprocessed_faces = []
         for face in faces:
             # Zmenšení dat na velikost 128x128 pixelů
-            face_resized = cv2.resize(face, 128, 128)
+            face_resized = cv2.resize(face, (128, 128))
             # Normalizace obrázku do rozsahu [0,1]
             face_normalized = face_resized / 255.0 # Děleny číslem 255, jelikož v tomto rozmezí se pohybují hodnoty pixelů (např. RGB)
             preprocessed_faces.append(face_normalized)
@@ -73,12 +73,93 @@ class DataPreprocessing:
 
 # Třída pro předzpracování datasetu (slouží pro trénink datasetu)
 class DatasetPreparation:
-    def __init__ (self, data_directory):
-
-        self.data_directory = data_directory
+    def __init__ (self, input_dataset_directory, output_dataset_directory):
+        
+        self.input_dataset_directory = input_dataset_directory
+        self.output_dataset_directory = output_dataset_directory
 
     def load_dataset(self):
         """
         Načte obrázky z datasetu
         """
-# Prvně vytvořit funkce v DataPreprocessing pro předzpracování, aby bylo z čeho tuto třídu tvořit...
+        # Vytvoření seznamu pro ukládání obrázků a odpovídajícímu labelu (id) osoby
+        photos = []
+        # Vytvoření slovníku pro označení každé podsložky (osoby)
+        person_labels = {}
+
+        # Přiřadí číselných štítků pro osoby dle složek
+        for id, person in enumerate(os.listdir(self.input_dataset_directory)):
+            person_labels[person] = id # Přiřazení indexu ke každé osobě
+
+        # Načtení obrázku pro každou osobu z datasetu
+        for person, label in person_labels.items():
+            # Cesta k adresáři osoby
+            person_direcotry = os.path.join(self.input_dataset_directory, person)
+
+            # Načtení obrázku ze složky osoby
+            for photo_name in os.listdir(person_direcotry):
+                photo_path = os.path.join(person_direcotry, photo_name)
+                # Načtení obrázku pomocí OpenCV
+                photo = cv2.imread(photo_path)
+
+                # Přidání obrázku a jeho štítku do seznamu
+                photos.append((photo, person))
+
+        # Vrácení seznamů
+        return photos, person_labels
+
+    def preprocess_and_save_dataset(self):
+        """
+        Předzpracuje a uloží data
+        """
+        # Načtení datasetu
+        photos, person_labels = self.load_dataset()
+
+        # Pro každý obrázek a jeho label
+        for photo, label in photos:
+            preprocessor = DataPreprocessing(photo)
+
+            # Detekce oblečejů
+            faces = preprocessor.detect_faces()
+            # Oříznutí oblečejů
+            cropped_faces = preprocessor.crop_faces(faces)
+            # Předzpracování obličejů - změna velikosti a normalizace
+            preprocessed_faces = preprocessor.preprocess_faces(cropped_faces)
+
+            # Uložení každého přezpracovaného obličeje
+            for i, face in enumerate(preprocessed_faces):
+                # Vytvoření výstupní složky pro každý štítek osoby, pokud neexistuje
+                person_directory = os.path.join(self.output_dataset_directory, str(person_labels[label]))
+                os.makedirs(person_directory, exist_ok=True)
+
+
+
+                # TYTO 2 ŘÁDKY JSOU PROZATIMNÍ
+                # De-normalizace před uložením (převod zpět na [0, 255])
+                face_denormalized = (face * 255).astype('uint8')               
+                
+
+
+                # Vytvoření cesty pro uložení obrázku
+                output_path = os.path.join(person_directory, f"{label}_{i}.jpg") # po dokončení úprav změnit na ".npy"
+                cv2.imwrite(output_path, face_denormalized)  # Uložení předzpracovaného obličeje
+                #numpy.save(output_path, face) # Uložení předzpracovaného obličeje
+
+
+
+
+        # Informace o dokončení dějě
+        print(f"Předzpracovaný dataset byl uložen do složky: {self.output_dataset_directory}")
+
+
+# DOČASNÝ KÓD PRO EXPERIMENTÁLNÍ PŘEDZPRACOVÁNÍ DATASETU (Bude odstraněno - pravděpodobně přesunuto do vlastního souboru.py)
+
+if __name__ == "__main__":
+    # Cesta k původnímu datasetu a složce pro výstup
+    input_dataset_directory = r"dataset\original dataset (LFW)\lfw-deepfunneled"
+    output_dataset_directory = r"dataset\preprocessed dataset (LFW)"
+
+    dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
+
+    # Předzpracování a uložení datasetu
+    dataset_preparation.preprocess_and_save_dataset()
