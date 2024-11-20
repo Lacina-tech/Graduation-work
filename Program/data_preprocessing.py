@@ -1,5 +1,6 @@
 import cv2
 import numpy
+import os
 
 class DataPreprocessing:
     def __init__(self, data):
@@ -42,7 +43,7 @@ class DataPreprocessing:
         """
         cropped_faces = []
         for (x1, y1, x2, y2) in faces:
-            cropped_faces.append(self.data[y1:y2, x1:x2])
+            cropped_faces.append(self.data[y1:y2, x1:x2]) # Oříznutí (X:X = zápis ve tvaru matice)
         return cropped_faces
 
     def preprocess_faces(self, faces):
@@ -76,5 +77,8 @@ class DatasetPreparation:
 
         self.data_directory = data_directory
 
-
+    def load_dataset(self):
+        """
+        Načte obrázky z datasetu
+        """
 # Prvně vytvořit funkce v DataPreprocessing pro předzpracování, aby bylo z čeho tuto třídu tvořit...
