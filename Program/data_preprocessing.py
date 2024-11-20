@@ -3,7 +3,8 @@ import numpy
 
 class DataPreprocessing:
     def __init__(self, data):
-        self.data = data  # Ukládá obrázek jako instanční proměnnou
+        # Uložení obrázku jako instanční proměnou
+        self.data = data
 
         # Cesta ke klasifikátoru na detekci obličeje
         self.model_path = "res10_300x300_ssd_iter_140000.caffemodel"
@@ -35,6 +36,28 @@ class DataPreprocessing:
                 faces.append(box.astype("int"))
         return faces
 
+    def crop_faces(self, faces):
+        """
+        Na základě detekovaných souřadnic z dat se vystřihne obličej
+        """
+        cropped_faces = []
+        for (x1, y1, x2, y2) in faces:
+            cropped_faces.append(self.data[y1:y2, x1:x2])
+        return cropped_faces
+
+    def preprocess_faces(self, faces):
+        """
+        Upraví obličej - normalizace a zmenšení velikosti pro vstup do algoritmu pro RO
+        """
+        preprocessed_faces = []
+        for face in faces:
+            # Zmenšení dat na velikost 128x128 pixelů
+            face_resized = cv2.resize(face, 128, 128)
+            # Normalizace obrázku do rozsahu [0,1]
+            face_normalized = face_resized / 255.0 # Děleny číslem 255, jelikož v tomto rozmezí se pohybují hodnoty pixelů (např. RGB)
+            preprocessed_faces.append(face_normalized)
+        return numpy.array(preprocessed_faces) # Použití numpy pro rychlost a paměťovou efektivnost
+
     def draw_faces(self, faces):
         """
         Nakreslí zelený obdélník kolem detekovaných obličejů
@@ -42,3 +65,16 @@ class DataPreprocessing:
         for (x1, y1, x2, y2) in faces:
             cv2.rectangle(self.data, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Zelený obdélník (BRG)
         return self.data
+    # Později přidat téže label se jménem obličeje
+
+
+
+
+# Třída pro předzpracování datasetu (slouží pro trénink datasetu)
+class DatasetPreparation:
+    def __init__ (self, data_directory):
+
+        self.data_directory = data_directory
+
+
+# Prvně vytvořit funkce v DataPreprocessing pro předzpracování, aby bylo z čeho tuto třídu tvořit...
