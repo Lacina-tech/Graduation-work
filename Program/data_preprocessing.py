@@ -8,8 +8,8 @@ class DataPreprocessing:
         self.data = data
 
         # Cesta ke klasifikátoru na detekci obličeje
-        self.model_path = "res10_300x300_ssd_iter_140000.caffemodel"
-        self.config_path = "deploy.prototxt"
+        self.model_path = r"Program\DNN\res10_300x300_ssd_iter_140000.caffemodel"
+        self.config_path = r"Program\DNN\deploy.prototxt"
 
     def detect_faces(self):
         """
