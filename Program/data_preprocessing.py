@@ -171,7 +171,7 @@ class DatasetPreparation:
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
     input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_dataset_directory = r"Program\dataset\preprocessed dataset.2 (LFW)"
+    output_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)"
 
     dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
 
