@@ -108,20 +108,16 @@ class DatasetPreparation:
         # Přiřadí číselných štítků pro osoby dle složek
         for id, person in enumerate(os.listdir(self.input_dataset_directory)):
             person_labels[person] = id # Přiřazení indexu ke každé osobě
-
-        # Načtení obrázku pro každou osobu z datasetu
-        for person, label in person_labels.items():
-            # Cesta k adresáři osoby
-            person_direcotry = os.path.join(self.input_dataset_directory, person)
+            person_directory = os.path.join(self.input_dataset_directory, person)
 
             # Načtení obrázku ze složky osoby
-            for photo_name in os.listdir(person_direcotry):
-                photo_path = os.path.join(person_direcotry, photo_name)
+            for photo_name in os.listdir(person_directory):
+                photo_path = os.path.join(person_directory, photo_name)
                 # Načtení obrázku pomocí OpenCV
                 photo = cv2.imread(photo_path)
 
                 # Přidání obrázku a jeho štítku do seznamu
-                photos.append((photo, person))
+                photos.append((photo, id, photo_name))
 
         # Vrácení seznamů
         return photos, person_labels
@@ -134,7 +130,7 @@ class DatasetPreparation:
         photos, person_labels = self.load_dataset()
 
         # Pro každý obrázek a jeho label
-        for photo, label in photos:
+        for photo, label, photo_name in photos:
             preprocessor = DataPreprocessing(photo)
 
             # Detekce oblečejů
@@ -147,10 +143,11 @@ class DatasetPreparation:
             # Uložení každého přezpracovaného obličeje
             for i, face in enumerate(preprocessed_faces):
                 # Vytvoření výstupní složky pro každý štítek osoby, pokud neexistuje
-                person_directory = os.path.join(self.output_dataset_directory, str(person_labels[label]))
+                person_directory = os.path.join(self.output_dataset_directory, str(label))
                 os.makedirs(person_directory, exist_ok=True)
 
-
+                photo_original_name = os.path.splitext(photo_name)[0]
+                output_path = os.path.join(person_directory, f"{photo_original_name}_face_{i}.jpg")
 
                 # TYTO 2 ŘÁDKY JSOU PROZATIMNÍ
                 # De-normalizace před uložením (převod zpět na [0, 255])
@@ -159,7 +156,6 @@ class DatasetPreparation:
 
 
                 # Vytvoření cesty pro uložení obrázku
-                output_path = os.path.join(person_directory, f"{label}_{i}.jpg") # po dokončení úprav změnit na ".npy"
                 cv2.imwrite(output_path, face_denormalized)  # Uložení předzpracovaného obličeje
                 #numpy.save(output_path, face) # Uložení předzpracovaného obličeje
 
