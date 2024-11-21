@@ -39,12 +39,30 @@ class DataPreprocessing:
 
     def crop_faces(self, faces):
         """
-        Na základě detekovaných souřadnic z dat se vystřihne obličej
+        Na základě detekovaných souřadnic z dat se vystřihne obličej ve čtvercovém rámu
         """
         cropped_faces = []
+
+        # Vytvoření z obdelníku, ve kterém je obličej, čtverec, aby se nedeformoval obličej v pozdější fázi
         for (x1, y1, x2, y2) in faces:
-            cropped_faces.append(self.data[y1:y2, x1:x2]) # Oříznutí (X:X = zápis ve tvaru matice)
-        return cropped_faces
+            # Určí velikost stran obdelníku, ve kterém je obličej
+            width = x2 - x1
+            height = y2 - y1
+
+            # Zjistí, která strana je delší
+            max_size = max(width, height)
+
+            # Výpočet nových čtvercových souřadnic (se zarovnáním na střed)
+            new_x1 = x1 - (max_size - width) // 2
+            new_y1 = y1 - (max_size - height) // 2
+            new_x2 = new_x1 + max_size
+            new_y2 = new_y1 + max_size
+
+            # Samotné oříznutí dat a jejich uložení
+            cropped_face = self.data[new_y1:new_y2, new_x1:new_x2]
+            cropped_faces.append(cropped_face)
+
+            return cropped_faces
 
     def preprocess_faces(self, faces):
         """
@@ -156,8 +174,8 @@ class DatasetPreparation:
 
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
-    input_dataset_directory = r"dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_dataset_directory = r"dataset\preprocessed dataset (LFW)"
+    input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
+    output_dataset_directory = r"Program\dataset\preprocessed dataset.2 (LFW)"
 
     dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
 
