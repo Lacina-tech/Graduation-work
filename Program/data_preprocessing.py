@@ -58,11 +58,14 @@ class DataPreprocessing:
             new_x2 = new_x1 + max_size
             new_y2 = new_y1 + max_size
 
-            # Samotné oříznutí dat a jejich uložení
-            cropped_face = self.data[new_y1:new_y2, new_x1:new_x2]
-            cropped_faces.append(cropped_face)
+            # Kontrola, že výřez není prázdný
+            if new_x2 > new_x1 and new_y2 > new_y1:
+                cropped_face = self.data[new_y1:new_y2, new_x1:new_x2]
+                cropped_faces.append(cropped_face)
+            else:
+                print(f"Varování: Neplatné souřadnice obličeje ({new_x1}, {new_y1}, {new_x2}, {new_y2}), přeskakuji...")
 
-            return cropped_faces
+        return cropped_faces
 
     def preprocess_faces(self, faces):
         """
@@ -70,11 +73,18 @@ class DataPreprocessing:
         """
         preprocessed_faces = []
         for face in faces:
-            # Zmenšení dat na velikost 128x128 pixelů
-            face_resized = cv2.resize(face, (128, 128))
-            # Normalizace obrázku do rozsahu [0,1]
-            face_normalized = face_resized / 255.0 # Děleny číslem 255, jelikož v tomto rozmezí se pohybují hodnoty pixelů (např. RGB)
-            preprocessed_faces.append(face_normalized)
+            if face is None or face.size == 0:  # Kontrola, zda je face validní
+                print("Upozornění, nenalezen žádný obličej, přeskakuji...")
+                continue
+
+            try:
+                face_resized = cv2.resize(face, (128, 128))
+                face_normalized = face_resized / 255.0  # Normalizace do [0, 1]
+                preprocessed_faces.append(face_normalized)
+            except cv2.error as e:
+                print(f"Chyba při zpracování obličeje: {e}")
+                continue
+
         return numpy.array(preprocessed_faces) # Použití numpy pro rychlost a paměťovou efektivnost
 
     def draw_faces(self, faces):
@@ -159,7 +169,8 @@ class DatasetPreparation:
                 cv2.imwrite(output_path, face_denormalized)  # Uložení předzpracovaného obličeje
                 #numpy.save(output_path, face) # Uložení předzpracovaného obličeje
 
-
+                # Oznámení o úspěšném uložení
+                print(f"Fotka uložena: {output_path}")
 
 
         # Informace o dokončení dějě
