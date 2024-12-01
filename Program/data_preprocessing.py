@@ -155,18 +155,21 @@ class DatasetPreparation:
             # Předzpracování dat
             preprocessed_faces = preprocessor.preprocess_faces()
 
-            # Uložení každého přezpracovaného obličeje
-            for i, face in enumerate(preprocessed_faces):
+            # Uložení pouze největšího (hlavního) přezpracovaného obličeje
+            if len(preprocessed_faces) > 0:
+                # Určujeme největší obličej
+                largest_face = max(preprocessed_faces, key=lambda face: face.shape[0] * face.shape[1])
+
                 # Vytvoření výstupní složky pro každý štítek osoby, pokud neexistuje
                 person_directory = os.path.join(self.output_dataset_directory, str(label))
                 os.makedirs(person_directory, exist_ok=True)
 
                 photo_original_name = os.path.splitext(photo_name)[0]
-                output_path = os.path.join(person_directory, f"{photo_original_name}_face_{i}.jpg")
+                output_path = os.path.join(person_directory, f"{photo_original_name}_main_face.jpg")
 
                 # TYTO 2 ŘÁDKY JSOU PROZATIMNÍ
                 # De-normalizace před uložením (převod zpět na [0, 255])
-                face_denormalized = (face * 255).astype('uint8')               
+                face_denormalized = (largest_face * 255).astype('uint8')               
                 
 
 
@@ -187,7 +190,7 @@ class DatasetPreparation:
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
     input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_dataset_directory = r"Program\dataset\preprocessed dataset123 (LFW)"
+    output_dataset_directory = r"Program\dataset\preprocessed dataset555 (LFW)"
 
     dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
 
