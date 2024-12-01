@@ -67,7 +67,7 @@ class DataPreprocessing:
 
         return cropped_faces
 
-    def preprocess_faces(self, faces):
+    def resizing_and_normalizing(self, faces):
         """
         Upraví obličej - normalizace a zmenšení velikosti pro vstup do algoritmu pro RO
         """
@@ -86,6 +86,15 @@ class DataPreprocessing:
                 continue
 
         return numpy.array(preprocessed_faces) # Použití numpy pro rychlost a paměťovou efektivnost
+
+    def preprocess_faces(self):
+        """
+        Funkce na předzpracování dat pro model RO
+        """
+        detected_faces = self.detect_faces()
+        cropped_faces = self.crop_faces(detected_faces)
+        preprocessed_faces = self.resizing_and_normalizing(cropped_faces)
+        return preprocessed_faces
 
     def draw_faces(self, faces):
         """
@@ -143,12 +152,8 @@ class DatasetPreparation:
         for photo, label, photo_name in photos:
             preprocessor = DataPreprocessing(photo)
 
-            # Detekce oblečejů
-            faces = preprocessor.detect_faces()
-            # Oříznutí oblečejů
-            cropped_faces = preprocessor.crop_faces(faces)
-            # Předzpracování obličejů - změna velikosti a normalizace
-            preprocessed_faces = preprocessor.preprocess_faces(cropped_faces)
+            # Předzpracování dat
+            preprocessed_faces = preprocessor.preprocess_faces()
 
             # Uložení každého přezpracovaného obličeje
             for i, face in enumerate(preprocessed_faces):
@@ -182,7 +187,7 @@ class DatasetPreparation:
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
     input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)"
+    output_dataset_directory = r"Program\dataset\preprocessed dataset123 (LFW)"
 
     dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
 
