@@ -59,3 +59,11 @@ def create_face_recognition_model(input_shape=(128, 128, 3)):
 
     # Vrácení modelu
     return model
+
+# Vytvoření modelu
+model = create_face_recognition_model()
+
+# Trénování modelu
+
+# Uložení modelu ve formátu H5
+model.save("face_recognition_model.h5")
