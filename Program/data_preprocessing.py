@@ -1,3 +1,7 @@
+# Modul, který předzpracovává a předtrénovává data pro model pro RO - detekce, ořez, redukce množství pixelů a normalizace obličejů
+# Autor: Lukáš Lacina 4.B <lacinal@jirovcovka.net>
+
+# Import knihoven
 import cv2
 import numpy
 import os

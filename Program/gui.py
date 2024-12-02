@@ -1,8 +1,11 @@
+# Modul, který obsahuje GUI v PyQt5 pro aplikaci RO
+# Autor: Lukáš Lacina 4.B <lacinal@jirovcovka.net>
+
+# Implementace knihoven
 from PyQt5 import QtWidgets, QtGui, QtCore
 import cv2
-import numpy
 
-
+# Implementace modelu
 from data_preprocessing import DataPreprocessing
 
 class AboutPage(QtWidgets.QWidget):
