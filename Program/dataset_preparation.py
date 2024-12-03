@@ -5,16 +5,21 @@
 import cv2
 import numpy
 import os
+from sklearn.model_selection import train_test_split
+from collections import Counter
 
 # Implementace modelu
 from data_preprocessing import DataPreprocessing
 
 # Třída pro předzpracování datasetu (slouží pro trénink datasetu)
 class DatasetPreparation:
-    def __init__ (self, input_dataset_directory, output_dataset_directory):
-        
+    def __init__ (self, input_dataset_directory, output_train_dataset_directory, output_test_dataset_directory):
+        """
+        Inicializace tříd
+        """
         self.input_dataset_directory = input_dataset_directory
-        self.output_dataset_directory = output_dataset_directory
+        self.output_train_dataset_directory = output_train_dataset_directory
+        self.output_test_dataset_directory = output_test_dataset_directory
 
     def load_dataset(self):
         """
@@ -44,11 +49,25 @@ class DatasetPreparation:
 
     def preprocess_and_save_dataset(self):
         """
-        Předzpracuje a uloží data
+        Předzpracuje a uloží data a rozdělí ho na trénovací a testovací část
         """
         # Načtení datasetu
         photos, person_labels = self.load_dataset()
 
+        # Rozdělění datasetu na trénovací a testovací sadu
+
+        train_photos, test_photos = train_test_split(photos, test_size=0.2, stratify=[label for _, label, _ in photos], random_state=42)
+
+        # Předzpracování a uložení trénovací sady pomocí funkce "process_and_save"
+        self.process_and_save(train_photos, self.output_train_dataset_directory, "trénovací")
+
+        # Předzpracování a uložení testovací sady pomocí funkce "process_and_save"
+        self.process_and_save(test_photos, self.output_test_dataset_directory, "testovací")
+
+    def process_and_save(self, photos, output_directory, name):
+        """
+        Zpracování a uložení dat do zadané složky
+        """
         # Pro každý obrázek a jeho label
         for photo, label, photo_name in photos:
             preprocessor = DataPreprocessing(photo)
@@ -62,38 +81,30 @@ class DatasetPreparation:
                 largest_face = max(preprocessed_faces, key=lambda face: face.shape[0] * face.shape[1])
 
                 # Vytvoření výstupní složky pro každý štítek osoby, pokud neexistuje
-                person_directory = os.path.join(self.output_dataset_directory, str(label))
+                person_directory = os.path.join(output_directory, str(label))
                 os.makedirs(person_directory, exist_ok=True)
 
                 photo_original_name = os.path.splitext(photo_name)[0]
-                output_path = os.path.join(person_directory, f"{photo_original_name}_main_face.npy")
+                output_path = os.path.join(person_directory, f"{photo_original_name}_face.npy")
 
-                # TYTO 2 ŘÁDKY JSOU PROZATIMNÍ
-                # De-normalizace před uložením (převod zpět na [0, 255])
-                #face_denormalized = (largest_face * 255).astype('uint8')               
-                
-
-
-                # Vytvoření cesty pro uložení obrázku
-                #cv2.imwrite(output_path, face_denormalized)  # Uložení předzpracovaného obličeje
+                # Uložení předzpracovaného datasetu
                 numpy.save(output_path, largest_face) # Uložení předzpracovaného obličeje
 
                 # Oznámení o úspěšném uložení
-                print(f"Fotka uložena: {output_path}")
-
+                print(f"Fotka uložena do {name} sady: {output_path}")
 
         # Informace o dokončení dějě
-        print(f"Předzpracovaný dataset byl uložen do složky: {self.output_dataset_directory}")
+        print(f"{name} dataset byl uložen do složky: {output_directory}")
 
 
-# DOČASNÝ KÓD PRO EXPERIMENTÁLNÍ PŘEDZPRACOVÁNÍ DATASETU (Bude odstraněno - pravděpodobně přesunuto do vlastního souboru.py)
 
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
     input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)"
+    output_train_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)\test"
+    output_test_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)\test"
 
-    dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
+    dataset_preparation = DatasetPreparation(input_dataset_directory, output_train_dataset_directory, output_test_dataset_directory)
 
     # Předzpracování a uložení datasetu
     dataset_preparation.preprocess_and_save_dataset()
