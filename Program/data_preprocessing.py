@@ -182,17 +182,17 @@ class DatasetPreparation:
                 os.makedirs(person_directory, exist_ok=True)
 
                 photo_original_name = os.path.splitext(photo_name)[0]
-                output_path = os.path.join(person_directory, f"{photo_original_name}_main_face.jpg")
+                output_path = os.path.join(person_directory, f"{photo_original_name}_main_face.npy")
 
                 # TYTO 2 ŘÁDKY JSOU PROZATIMNÍ
                 # De-normalizace před uložením (převod zpět na [0, 255])
-                face_denormalized = (largest_face * 255).astype('uint8')               
+                #face_denormalized = (largest_face * 255).astype('uint8')               
                 
 
 
                 # Vytvoření cesty pro uložení obrázku
-                cv2.imwrite(output_path, face_denormalized)  # Uložení předzpracovaného obličeje
-                #numpy.save(output_path, face) # Uložení předzpracovaného obličeje
+                #cv2.imwrite(output_path, face_denormalized)  # Uložení předzpracovaného obličeje
+                numpy.save(output_path, largest_face) # Uložení předzpracovaného obličeje
 
                 # Oznámení o úspěšném uložení
                 print(f"Fotka uložena: {output_path}")
