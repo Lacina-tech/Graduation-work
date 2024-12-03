@@ -62,12 +62,25 @@ class DataPreprocessing:
             new_x2 = new_x1 + max_size
             new_y2 = new_y1 + max_size
 
+            # Kontrola záporných souřadníc
+            if new_x1 < 0:
+                new_x2 += - new_x1
+                new_x1 = 0
+                print(f"Posunutí souřadnic {new_x1}, {new_y1}, {new_x2}, {new_y2}")
+
+            if new_y1 < 0:
+                new_y2 += - new_y1
+                new_y1 = 0
+                print(f"Posunutí souřadnic {new_x1}, {new_y1}, {new_x2}, {new_y2}")
+
+
             # Kontrola, že výřez není prázdný
             if new_x2 > new_x1 and new_y2 > new_y1:
                 cropped_face = self.data[new_y1:new_y2, new_x1:new_x2]
-                cropped_faces.append(cropped_face)
-            else:
-                print(f"Varování: Neplatné souřadnice obličeje ({new_x1}, {new_y1}, {new_x2}, {new_y2}), přeskakuji...")
+                if cropped_face.size > 0:
+                    cropped_faces.append(cropped_face)
+                else:
+                    print(f"Nalezen obličej s neplatnými souřadnicemi ({new_x1}, {new_y1}, {new_x2}, {new_y2})")
 
         return cropped_faces
 
@@ -78,7 +91,7 @@ class DataPreprocessing:
         preprocessed_faces = []
         for face in faces:
             if face is None or face.size == 0:  # Kontrola, zda je face validní
-                print("Upozornění, nenalezen žádný obličej, přeskakuji...")
+                print("Obličem nebyl nalezen (resizing_and_normalizing)")
                 continue
 
             try:
@@ -194,7 +207,7 @@ class DatasetPreparation:
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
     input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_dataset_directory = r"Program\dataset\preprocessed dataset555 (LFW)"
+    output_dataset_directory = r"Program\dataset\preprocessed dataset (LFW) - test správného průběhu"
 
     dataset_preparation = DatasetPreparation(input_dataset_directory, output_dataset_directory)
 
