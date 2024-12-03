@@ -27,10 +27,11 @@ class DatasetPreparation:
 
         funkce vrací 2 objekty
         - photos: seznam, každý prvek obsahuje trojici podprvků (foto, label, jméno_souboru)
+        - personal_label: slovník, kde klíč je název složky a hodnota je unikátní štítek osoby
         """
         # Vytvoření seznamu pro ukládání obrázků a odpovídajícímu labelu (id) osoby
         photos = []
-        # Vytvoření slovníku pro označení každé podsložky (osoby)
+        # Vytvoření slovníku pro označení každé složky unikátním štítkem (osoby)
         person_labels = {}
 
         # Přiřadí číselných štítků pro osoby dle složek
@@ -52,38 +53,44 @@ class DatasetPreparation:
 
     def preprocess_and_save_dataset(self):
         """
-        Předzpracuje a uloží data a rozdělí ho na trénovací a testovací část
+        Předzpracovává a ukládá data a rozděluje je na trénovací a testovací sadu
         """
         # Načtení datasetu
         photos, person_labels = self.load_dataset()
 
+        # Extrakce všech štítků z photos
         labels = [label for _, label, _ in photos]
+        # Zjištění počtu obrázků v jednotlivé třídě
         label_counts = Counter(labels)
 
-        # Rozdělení třídy s jedním vzorkem
+        # Třídy, které obsahují pouze jeden obrázek jsou zařazeny do trénovací sady (train_test_split funguje pouze pro třídy s 2 a více daty)
         train_photos = [photo for photo in photos if label_counts[photo[1]] == 1]
+        # Třídy s více obrázky
         multiple_sample_photos = [photo for photo in photos if label_counts[photo[1]] > 1]
 
+        # Rozdělení tříd s více obrázky na trénovací a testovací část v poměru 1:5
         if multiple_sample_photos:
             train_split, test_split = train_test_split(
-                multiple_sample_photos,
-                test_size=0.2,
-                stratify=[label for _, label, _ in multiple_sample_photos],
+                multiple_sample_photos, # Data pr orozdělení
+                test_size=0.2, # Podíl pro testovací sadu
+                stratify=[label for _, label, _ in multiple_sample_photos], # Stratiikace dle tříd
                 random_state=42
             )
-            train_photos.extend(train_split)
+            # Doplnění trénovací sady o train_split
+            train_photos.extend(train_split) 
         else:
+            # Testovací sada
             test_split = []
 
         # Předzpracování a uložení trénovací sady pomocí funkce "process_and_save"
-        self.process_and_save(train_photos, self.output_train_dataset_directory, "trénovací")
+        self.preprocess_faces_and_save(train_photos, self.output_train_dataset_directory, "trénovací")
 
         # Předzpracování a uložení testovací sady pomocí funkce "process_and_save"
-        self.process_and_save(test_split, self.output_test_dataset_directory, "testovací")
+        self.preprocess_faces_and_save(test_split, self.output_test_dataset_directory, "testovací")
 
-    def process_and_save(self, photos, output_directory, name):
+    def preprocess_faces_and_save(self, photos, output_directory, name):
         """
-        Zpracování a uložení dat do zadané složky
+        Zpracování a uložení dat do jednotlivých složek dle unikátního štítku
         """
         # Pro každý obrázek a jeho label
         for photo, label, photo_name in photos:
@@ -92,7 +99,7 @@ class DatasetPreparation:
             # Předzpracování dat
             preprocessed_faces = preprocessor.preprocess_faces()
 
-            # Uložení pouze největšího (hlavního) přezpracovaného obličeje
+            # Uložení pouze největšího (hlavního) přezpracovaného obličeje (ignoruje detekované obličeje na pozadí)
             if len(preprocessed_faces) > 0:
                 # Určujeme největší obličej
                 largest_face = max(preprocessed_faces, key=lambda face: face.shape[0] * face.shape[1])
@@ -101,6 +108,7 @@ class DatasetPreparation:
                 person_directory = os.path.join(output_directory, str(label))
                 os.makedirs(person_directory, exist_ok=True)
 
+                # Pojmenování dat a nastavení formátu data.npy (pro normalizovaná data)
                 photo_original_name = os.path.splitext(photo_name)[0]
                 output_path = os.path.join(person_directory, f"{photo_original_name}_face.npy")
 
