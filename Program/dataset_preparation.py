@@ -1,4 +1,4 @@
-# Modul, který předzpracovává dataset, který slouží pro trénování a testováním modelu Ro
+# Modul, který předzpracovává dataset, který slouží pro trénování a testováním modelu RO
 # Autor: Lukáš Lacina 4.B <lacinal@jirovcovka.net>
 
 # Import knihoven
@@ -23,7 +23,10 @@ class DatasetPreparation:
 
     def load_dataset(self):
         """
-        Načte obrázky z datasetu
+        Načte obrázky z datasetu a přiřadí mu unikátní štítek osoby
+
+        funkce vrací 2 objekty
+        - photos: seznam, každý prvek obsahuje trojici podprvků (foto, label, jméno_souboru)
         """
         # Vytvoření seznamu pro ukládání obrázků a odpovídajícímu labelu (id) osoby
         photos = []
@@ -54,15 +57,29 @@ class DatasetPreparation:
         # Načtení datasetu
         photos, person_labels = self.load_dataset()
 
-        # Rozdělění datasetu na trénovací a testovací sadu
+        labels = [label for _, label, _ in photos]
+        label_counts = Counter(labels)
 
-        train_photos, test_photos = train_test_split(photos, test_size=0.2, stratify=[label for _, label, _ in photos], random_state=42)
+        # Rozdělení třídy s jedním vzorkem
+        train_photos = [photo for photo in photos if label_counts[photo[1]] == 1]
+        multiple_sample_photos = [photo for photo in photos if label_counts[photo[1]] > 1]
+
+        if multiple_sample_photos:
+            train_split, test_split = train_test_split(
+                multiple_sample_photos,
+                test_size=0.2,
+                stratify=[label for _, label, _ in multiple_sample_photos],
+                random_state=42
+            )
+            train_photos.extend(train_split)
+        else:
+            test_split = []
 
         # Předzpracování a uložení trénovací sady pomocí funkce "process_and_save"
         self.process_and_save(train_photos, self.output_train_dataset_directory, "trénovací")
 
         # Předzpracování a uložení testovací sady pomocí funkce "process_and_save"
-        self.process_and_save(test_photos, self.output_test_dataset_directory, "testovací")
+        self.process_and_save(test_split, self.output_test_dataset_directory, "testovací")
 
     def process_and_save(self, photos, output_directory, name):
         """
@@ -101,7 +118,7 @@ class DatasetPreparation:
 if __name__ == "__main__":
     # Cesta k původnímu datasetu a složce pro výstup
     input_dataset_directory = r"Program\dataset\original dataset (LFW)\lfw-deepfunneled"
-    output_train_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)\test"
+    output_train_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)\train"
     output_test_dataset_directory = r"Program\dataset\preprocessed dataset (LFW)\test"
 
     dataset_preparation = DatasetPreparation(input_dataset_directory, output_train_dataset_directory, output_test_dataset_directory)
