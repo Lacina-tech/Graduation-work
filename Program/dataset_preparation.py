@@ -110,10 +110,10 @@ class DatasetPreparation:
 
                 # Pojmenování dat a nastavení formátu data.npy (pro normalizovaná data)
                 photo_original_name = os.path.splitext(photo_name)[0]
-                output_path = os.path.join(person_directory, f"{photo_original_name}_face.npy")
+                output_path = os.path.join(person_directory, f"{photo_original_name}_face.jpeg")
 
                 # Uložení předzpracovaného datasetu
-                numpy.save(output_path, largest_face) # Uložení předzpracovaného obličeje
+                cv2.imwrite(output_path, largest_face) # Uložení předzpracovaného obličeje
 
                 # Oznámení o úspěšném uložení
                 print(f"Fotka uložena do {name} sady: {output_path}")
