@@ -4,7 +4,6 @@
 # Import knihoven
 import cv2
 import numpy
-import os
 
 class DataPreprocessing:
     def __init__(self, data):
