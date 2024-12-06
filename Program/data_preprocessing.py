@@ -95,8 +95,8 @@ class DataPreprocessing:
 
             try:
                 face_resized = cv2.resize(face, (128, 128))
-                face_normalized = face_resized / 255.0  # Normalizace do [0, 1]
-                preprocessed_faces.append(face_normalized)
+                #face_normalized = face_resized / 255.0  # Normalizace do [0, 1]
+                preprocessed_faces.append(face_resized) # Prozatimně, poté vrátit face:normalized
             except cv2.error as e:
                 print(f"Chyba při zpracování obličeje: {e}")
                 continue
