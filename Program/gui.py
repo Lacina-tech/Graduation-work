@@ -5,8 +5,8 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 import cv2
 
-# Implementace modelu
-from data_preprocessing import DataPreprocessing
+# Implementace modulu
+from face_recognition import FaceRecognition
 
 class AboutPage(QtWidgets.QWidget):
     def __init__(self):
@@ -85,11 +85,10 @@ class PhotoUploadPage(QtWidgets.QWidget):
         """        
         if self.cv_image is not None:
             # Inicializuje DataPreprocessing s nahraným obrázkem
-            processor = DataPreprocessing(self.cv_image)
+            processor = FaceRecognition(self.cv_image)
         
-            # Předzpracuje obrázek a detekuje obličeje
-            faces = processor.detect_faces()
-            edited_image = processor.draw_faces(faces)
+            # Rozpoznání obličeje
+            edited_image = processor.recognize()
 
             # Změna typz barev z BRG na RGB (OpenCV používá BRG = tzn. bez převodu to změní barvy)
             edited_image = cv2.cvtColor(edited_image, cv2.COLOR_BGR2RGB)
@@ -235,12 +234,10 @@ class LiveRecordingPage(QtWidgets.QWidget):
                 # Pokud je zapnuté rozpoznávání obličeje, oznáčení čtverce
                 if self.face_recognition_active:
                     # Inicializuje DataPreprocessing s aktuálním snímkem
-                    processor = DataPreprocessing(frame)
+                    processor = FaceRecognition(frame)
 
-                    # Detekce obličejů
-#                    print("Rozpoznávání obličejů je aktivní.")  # Diagnostika
-                    faces = processor.detect_faces()  # Detekce obličejů
-                    edited_video = processor.draw_faces(faces)  # Nakreslí obdélníky kolem obličejů
+                    # Rozpoznání obličeje
+                    edited_video = processor.recognize()
 
                     # Zobrazení upraveného snímku a jeho úprava do formátu pro QtPy po zapnutí rozpoznávání obličeje
                     edited_video = cv2.cvtColor(edited_video, cv2.COLOR_BGR2RGB)

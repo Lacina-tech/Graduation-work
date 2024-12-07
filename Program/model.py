@@ -3,7 +3,7 @@
 
 # Import knihovny
 import tensorflow
-import numpy as np
+import numpy
 import os
 import cv2
 
@@ -84,7 +84,7 @@ def load_data(dataset_directory):
             labels.append(int(label))
 
     # Vrácí data a příslučné labely
-    return np.array(data), np.array(labels)
+    return numpy.array(data), numpy.array(labels)
 
 # Načtení dat
 train_data, train_labels = load_data(r"Program\dataset\preprocessed dataset (LFW)\train")
