@@ -78,7 +78,7 @@ def load_data(dataset_directory):
             image = cv2.imread(photo_path)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Převod na RGB
             image = cv2.resize(image, (128, 128))  # Změna velikosti
-            image = image.astype("float32") / 255.0  # Normalizace (Bude odstraněna - použita jinde)
+            image = image.astype("float32")  # Normalizace (Bude odstraněna - použita jinde)
 
             data.append(image)
             labels.append(int(label))
@@ -87,11 +87,11 @@ def load_data(dataset_directory):
     return np.array(data), np.array(labels)
 
 # Načtení dat
-train_data, train_labels = load_data(r"Program\dataset\preprocessed dataset.1 (LFW)\train")
-test_data, test_labels = load_data(r"Program\dataset\preprocessed dataset.1 (LFW)\test")
+train_data, train_labels = load_data(r"Program\dataset\preprocessed dataset (LFW)\train")
+test_data, test_labels = load_data(r"Program\dataset\preprocessed dataset (LFW)\test")
 
 # Převod štítků na one-hot encoding
-num_classes = len(os.listdir(r"Program\dataset\preprocessed dataset.1 (LFW)\train"))
+num_classes = len(os.listdir(r"Program\dataset\preprocessed dataset (LFW)\train"))
 train_labels = tensorflow.keras.utils.to_categorical(train_labels, num_classes)
 test_labels = tensorflow.keras.utils.to_categorical(test_labels, num_classes)
 
