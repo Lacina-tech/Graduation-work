@@ -8,7 +8,7 @@ import cv2
 # Implementace modulu
 from face_recognition import FaceRecognition
 
-
+# Třída pro vyskakovací notifikace
 class NotificationWidget(QtWidgets.QLabel):
     def __init__(self, text, background_color="#FF474C", parent=None):
         super().__init__(parent)
@@ -25,7 +25,6 @@ class NotificationWidget(QtWidgets.QLabel):
         notification = NotificationWidget(text, background_color)
         layout.insertWidget(0, notification)  # Přidání jako první widget
         return notification
-
 
 class AboutPage(QtWidgets.QWidget):
     def __init__(self):
@@ -79,15 +78,16 @@ class PhotoUploadPage(QtWidgets.QWidget):
         Funkce nahraje obrázek, pokud byl vybrán správný formát
         """
         # Otevře výběr souborů
-        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyber obrázek", "", "Image Files (*.png *.jpg *.bmp +.jpeg)")
+        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyberte obrázek", "", "Image Files (*.png *.jpg *.bmp +.jpeg)")
 
         # Pokud byl vložen soubor ve správném formátů, uloží se do proměnné self.loaded_image
         if image_path:
             self.cv_image = cv2.imread(image_path)
             self.loaded_image = QtGui.QPixmap(image_path)
             self.show_image()
+            NotificationWidget.show_notification(self.layout, "Obrázek byl úspěšně načten", background_color="lightgreen")
         else:
-            print("souboor se nenahrál")
+            NotificationWidget.show_notification(self.layout, "Pozor, nebyl vložen žádný obrázek")
 
     def show_image(self):
         """
@@ -117,9 +117,10 @@ class PhotoUploadPage(QtWidgets.QWidget):
             bytes_per_line = 3 * width
             qt_image = QtGui.QImage(edited_image.data, width, height, bytes_per_line, QtGui.QImage.Format_RGB888)
             self.loaded_image = QtGui.QPixmap.fromImage(qt_image)  # Uložení upraveného obrázku
-
+            NotificationWidget.show_notification(self.layout, "Proces rozpoznání obličeje proběhl.", background_color="lightgreen")
             # Zobrazení upraveného obrázku
             self.show_image()
+            
         else:
             print("Není nahraný žádný obrázek.")
 
@@ -182,7 +183,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
 
         # Vytvoření layoutu, ve kterém se nachází tlačítko
         # Vytvoření tlačítka
-        self.button_switching_camera = QtWidgets.QPushButton("Zapnou kameru", self)
+        self.button_switching_camera = QtWidgets.QPushButton("Zapnout kameru", self)
         self.button_switching_camera.clicked.connect(self.toggle_camera)
         self.button_face_recognize = QtWidgets.QPushButton("Zapnout rozpoznávání obličeje", self)
         self.button_face_recognize.clicked.connect(self.toggle_face_recognition)
@@ -207,6 +208,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
             self.camera = cv2.VideoCapture(0)
             self.timer.start(50)
             self.button_switching_camera.setText("Vypnout kameru")
+            NotificationWidget.show_notification(self.layout, "Kamera je zapnutá.", background_color="lightgreen")
         # Pokud je kamera vypnutá, vypne se a zastaví časovač + rozpoznávání obličeje
         else:
             self.timer.stop()
@@ -216,6 +218,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
             self.button_switching_camera.setText("Zapnout kameru")
             self.face_recognition_active = False  # Zastaví rozpoznávání obličeje
             self.button_face_recognize.setText("Zapnout rozpoznávání obličeje")
+            NotificationWidget.show_notification(self.layout, "Kamera a rozpoznávání obličeje je vypnuto.", background_color="lightgreen")
 
     def toggle_face_recognition(self):
         """
@@ -223,15 +226,15 @@ class LiveRecordingPage(QtWidgets.QWidget):
         """
         # Pokud je kamera vypnutá, rozpoznávání obličeje není umonžněno
         if self.camera is None:
-            print("Kamera není zapnuta. Rozpoznávání obličeje nelze zapnout.")
+            NotificationWidget.show_notification(self.layout, "Kamera je vypnuta, rozpoznávání obličeje nelze zapnout.")
             return # Ukončení dalšího čtení funkce
         
         self.face_recognition_active = not self.face_recognition_active  # Přepíná stav funkce face_recognition_active
         if self.face_recognition_active:
-            print("Rozpoznávání obličeje zapnuto.")  # Diagnostika
+            NotificationWidget.show_notification(self.layout, "Rozpoznávání obličeje je zapnuto.", background_color="lightgreen")
             self.button_face_recognize.setText("Vypnout rozpoznávání obličeje")
         else:
-            print("Rozpoznávání obličeje vypnuto.")  # Diagnostika
+            NotificationWidget.show_notification(self.layout, "Rozpoznávání obličeje je vypnuto.", background_color="lightgreen")
             self.button_face_recognize.setText("Zapnout rozpoznávání obličeje")
 
     def show_video(self):
@@ -384,7 +387,7 @@ class AddFacePage(QtWidgets.QWidget):
             # Aktualizace počtu obrázků
             self.image_count_label.setText(f"Počet obrázků: {len(self.images)}")
             self.show_image()
-            NotificationWidget.show_notification(self.layout, "Byl přidán obrázek", background_color="lightgreen")
+            NotificationWidget.show_notification(self.layout, "Obrázek byl úspěšně načten", background_color="lightgreen")
         else:
             NotificationWidget.show_notification(self.layout, "Pozor, nebyl vložen žádný obrázek")
 
