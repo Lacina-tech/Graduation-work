@@ -8,6 +8,25 @@ import cv2
 # Implementace modulu
 from face_recognition import FaceRecognition
 
+
+class NotificationWidget(QtWidgets.QLabel):
+    def __init__(self, text, background_color="#FF474C", parent=None):
+        super().__init__(parent)
+        self.setText(text)
+        self.setStyleSheet(f"background-color: {background_color}; padding: 10px;")
+        self.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Automatické skrytí notifikace po 3 sekundách
+        QtCore.QTimer.singleShot(3000, self.hide)
+
+    @staticmethod
+    def show_notification(layout, text, background_color="#FF474C"):
+        """Statická metoda pro zobrazení notifikace na začátku layoutu."""
+        notification = NotificationWidget(text, background_color)
+        layout.insertWidget(0, notification)  # Přidání jako první widget
+        return notification
+
+
 class AboutPage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -41,7 +60,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         # Vytvoření layoutu, ve kterém se nachází tlačítka
         # Vytvoření tlačítek
         self.button_load = QtWidgets.QPushButton("Nahrát fotku", self)
-        self.button_load.clicked.connect(self.load_image)
+        self.button_load.clicked.connect(self.upload_image)
         self.button_recognize = QtWidgets.QPushButton("Rozpoznat obličej", self)
         self.button_recognize.clicked.connect(self.face_recognize)
         # Vytvoření layoutu a jeho napojení na hlavní layout
@@ -55,15 +74,15 @@ class PhotoUploadPage(QtWidgets.QWidget):
         self.loaded_image = None # Pro QPixmap
         self.cv_image = None # Pro OpenCV
 
-    def load_image(self):
+    def upload_image(self):
         """
         Funkce nahraje obrázek, pokud byl vybrán správný formát
         """
         # Otevře výběr souborů
-        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyber obrázek", "", "Image Files (*.png *.jpg *.bmp)")
+        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyber obrázek", "", "Image Files (*.png *.jpg *.bmp +.jpeg)")
 
         # Pokud byl vložen soubor ve správném formátů, uloží se do proměnné self.loaded_image
-        if image_path is not None:
+        if image_path:
             self.cv_image = cv2.imread(image_path)
             self.loaded_image = QtGui.QPixmap(image_path)
             self.show_image()
@@ -145,7 +164,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         # Vytvoření hlavního layoutu
         layout = QtWidgets.QVBoxLayout(self)
 
-        # Vytvoření layoutu, ve kterém senachází prostor pro zobrazení kamery
+        # Vytvoření layoutu, ve kterém se nachází prostor pro zobrazení kamery
         # Vytvoření rámu, ve kterém se bude zobrazovat video
         self.frame = QtWidgets.QFrame(self)
         self.frame.setFrameShape(QtWidgets.QFrame.Box)
@@ -214,7 +233,6 @@ class LiveRecordingPage(QtWidgets.QWidget):
         else:
             print("Rozpoznávání obličeje vypnuto.")  # Diagnostika
             self.button_face_recognize.setText("Zapnout rozpoznávání obličeje")
-
 
     def show_video(self):
         """
@@ -290,9 +308,151 @@ class LiveRecordingPage(QtWidgets.QWidget):
 class AddFacePage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        layout = QtWidgets.QVBoxLayout(self)
-        label = QtWidgets.QLabel("3")
-        layout.addWidget(label)
+
+        # Vytvoření hlavní layoutu
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        # Informativní label o přidání osoby
+        self.info_label = QtWidgets.QLabel("Pokud chcete vložit novou osobu do databáze známých osob je potřeba vložit fotku/fotky dané osoby\na zadat její celé jméno do předem připravených polí.")
+        self.info_label.setStyleSheet("background-color: lightgray; padding: 5px;")
+        self.info_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.layout.addWidget(self.info_label, 1)
+
+        # Vytvoření layoutu, ve kterém se přidává nová osoba
+        addperson_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(addperson_layout, 4)
+
+        # Levá část layoutu, ve kterém se nachází uživatelem vložená fotka
+        # Vytvoření rámu, do kterého se budou náhrávat fotky a jeho omezení
+        self.frame = QtWidgets.QFrame(self)
+        self.frame.setFrameShape(QtWidgets.QFrame.Box)
+        self.frame.setStyleSheet("background-color: #b0b0b0;")
+        # Nastavení minimální velikosti rámce, která zamezuje rapidnímu růstu okna po vložení fotky s příliš vysokou kvalitou
+        self.frame.setMinimumSize(300, 300)
+        addperson_layout.addWidget(self.frame, 5)
+        # Vytvoření labelu, který vkládá obrázek do rámu
+        self.image_label = QtWidgets.QLabel(self.frame) # Jeho základem je právě rám
+        self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.image_label.setText("Nahrajte obrázek")
+        # Vytvoření layoutu, ve kterém se nachází rám s vloženou fotkou a jeho napojení na hlavní layout
+        frame_layout = QtWidgets.QVBoxLayout(self.frame)
+        frame_layout.setContentsMargins(0, 0, 0, 0) # Odstranění okrajů, aby se obrázek napojil až na oraje rámu
+        frame_layout.addWidget(self.image_label)
+
+        # Pravá čast layoutu, ve které je formulář a tlačítka 
+        form_layout = QtWidgets.QVBoxLayout()
+
+        self.name_input = QtWidgets.QLineEdit()
+        self.name_input.setPlaceholderText("Zadejte jméno")
+        form_layout.addWidget(self.name_input)
+
+        self.surname_input = QtWidgets.QLineEdit()
+        self.surname_input.setPlaceholderText("Zadejte příjmení")
+        form_layout.addWidget(self.surname_input)
+
+        self.upload_button = QtWidgets.QPushButton("Nahrát obrázky")
+        self.upload_button.clicked.connect(self.upload_image)
+        form_layout.addWidget(self.upload_button)
+
+        self.save_button = QtWidgets.QPushButton("Uložit osobu")
+        self.save_button.clicked.connect(self.save_person)
+        form_layout.addWidget(self.save_button)
+
+        # Additional area for displaying count of uploaded images
+        self.image_count_label = QtWidgets.QLabel("Počet obrázků: 0")
+        self.image_count_label.setAlignment(QtCore.Qt.AlignRight)
+        form_layout.addWidget(self.image_count_label)
+
+        addperson_layout.addLayout(form_layout, 2)
+
+        # Vložené data
+        self.images = []
+        # Stará se o resize vloženého obrazu
+        self.loaded_image = None # Pro QPixmap
+
+    def upload_image(self):
+        """
+        Funkce nahraje obrázek, pokud byl vybrán správný formát
+        """
+        # Otevře výběr souborů
+        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyberte obrázek", "", "Image Files (*.png *.jpg *.bmp)")
+
+        # Pokud byl vložen soubor ve správném formátů, uloží se do proměnné self.loaded_image
+        if image_path:
+            self.loaded_image = QtGui.QPixmap(image_path)
+            self.images.append(self.loaded_image)
+            # Aktualizace počtu obrázků
+            self.image_count_label.setText(f"Počet obrázků: {len(self.images)}")
+            self.show_image()
+            NotificationWidget.show_notification(self.layout, "Byl přidán obrázek", background_color="lightgreen")
+        else:
+            NotificationWidget.show_notification(self.layout, "Pozor, nebyl vložen žádný obrázek")
+
+    def show_image(self):
+        """
+        Funkce zobrazí obrázek do rámu a přizpůsobí obrázek velikosti rámu a zachová svůj poměr stran
+        """
+        if self.loaded_image is not None: # Pokud je vložen obrázek
+            frame_size = self.frame.size() 
+            scaled_image = self.loaded_image.scaled(frame_size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+            self.image_label.setPixmap(scaled_image)
+    
+    def save_person(self):
+        """Funkce pro uložení osoby."""
+
+        name = self.name_input.text().strip()
+        surname = self.surname_input.text().strip()
+
+        if not name or not surname:
+            NotificationWidget.show_notification(self.layout, "Chyba, Musí být zadáno jméno a přijmení.")
+            return
+
+        if not self.images:
+            NotificationWidget.show_notification(self.layout, "Chyba, musí být nahrán alespoň jeden obrázek.")
+            return
+
+        # Zde můžete implementovat uložení dat do databáze pomocí funkce ze souboru sql.py
+        # Například: sql.add_person(name, surname, embeddings)
+
+        NotificationWidget.show_notification(self.layout, f"Osoba {name} {surname} byla uložena.", background_color="lightgreen")
+        
+        # Reset GUI po uložení
+        self.name_input.clear()
+        self.surname_input.clear()
+        self.image_label.clear()
+        self.loaded_image = None
+        self.image_label.setStyleSheet("background-color: #b0b0b0")
+        self.image_label.setText("Nahrajte obrázek")
+        self.images = []
+        self.image_count_label.setText("Počet obrázků: 0")
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        # Zjištění velikosti stránky
+        page_width = self.size().width()
+
+        if self.loaded_image is not None:
+            self.show_image()
+
+        # Velikost textu (tlačítka)
+        button_font_size = int(page_width // 40)
+        for button in [self.upload_button, self.save_button]:
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #24477C;
+                    color: white;
+                    font-size: {button_font_size}px;
+                    font-family: Roboto;
+                    font-weight: bold;
+                    text-align: center;
+                    border-radius: 5px;
+                    padding: 7px;
+                }}
+                QPushButton:hover {{
+                    background-color: #0066CC;
+                }}
+            """)
 
 # Třída boční lišty
 class Sidebar(QtWidgets.QWidget):

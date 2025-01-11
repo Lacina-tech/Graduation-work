@@ -1,113 +1,125 @@
-# Modul, který obsahuje vytvořený model pro RO a jeho předtrénování
+# Modul, který obsahuje kod pro vytvoření a předtrénování modelu, který vytváří embeddingy
 # Autor: Lukáš Lacina 4.B <lacinal@jirovcovka.net>
 
-# Import knihovny
-import tensorflow
-import numpy
+# Import knihoven
+import tensorflow as tf
+import numpy as np
 import os
-import cv2
 
-# Vytvoření vlastní struktury algoritmu pro RO pomocí tensorflow
-def create_face_recognition_model(input_shape=(128, 128, 3), num_classes=None):
-    """
-    Vytvoření vlastního modelu pro RO pomocí CNN
+# Parametry
+IMG_SIZE = (128, 128, 3)
+EMBEDDING_SIZE = 128
+BATCH_SIZE = 72  # Zvýšeno na větší násobek 3
+AUTOTUNE = tf.data.AUTOTUNE
 
-    Modul extrahuje rysy obličeje a poté je převede do embeddingu (do matematické reprezentace vektorových vzdáleností), která slouží k rychlému porovnávání a identifikaci obličejů
-
-    Model potřebuje, aby byla vstupní data normalizována a měla velikost 128x128, 3
-
-    Příchozí data:
-        parametr: input_shape - určuje tvar vstupních dat (velikost 128x128, má 3 kanály = tnz. RGB formát)
-    """
-    model = tensorflow.keras.models.Sequential() # Využívá se sekvenční model (vrstvy jsou přidávány v lineárním pořadí - každá výstup vrstvy je vstupem do další vrsty)
-
-    # První konvolunční vrstva
-    # Konvoluční vrstva extrahuje rysy (Conv2D)
-        # Model určuje 32 filtrů (rysů), každý rys má velikost 3x3 pixelů
-        # activation="relu" - aktivační funkce
-        # input_shape=input_shape - určuje velikost vstupních dat v pixelech a počet barevných kanalů
-    model.add(tensorflow.keras.layers.Conv2D(32, (3, 3), activation="relu", input_shape=input_shape))
-    # Konvolunční vrstva zmenšuje prostorovou velikost obrazových dat a to ta, že hledá maximální hodnotu určeného okolí (pro snížení náročnosti)
-        # (2, 2) - v rozsahu 2x2 pixelů se hledá maximální hodnota
-    model.add(tensorflow.keras.layers.MaxPooling2D((2, 2)))
-
-    # Druhá konvolunční vrstva
-        # Tato vrstva funguje na stejném principu, ale nyní se hledá 64 filtru - tzn. hledají se složitější rysy
-    model.add(tensorflow.keras.layers.Conv2D(64, (3, 3), activation="relu"))
-    model.add(tensorflow.keras.layers.MaxPooling2D((2, 2)))
-
-    # Třetí konvolunční vrstva
-        # Tato vrstva funguje na stejném principu, ale nyní se hledá 128 filtru - tzn. hledají se složitější rysy
-    model.add(tensorflow.keras.layers.Conv2D(128, (3, 3), activation="relu"))
-    model.add(tensorflow.keras.layers.MaxPooling2D((2, 2)))
-
-    # Vrstva pro vygenerování embeddingu
-    # Tato vrstva převedení výstupu z předchozí vrstvy (mají maticovou strukturu (2D)) do jednorozměrných vektorů (Flatten = zploštění)
-    model.add(tensorflow.keras.layers.Flatten())
-    # Tato vrstva zpracovává informace z předchozích vrstev a vytváří komplexní reprezentaci obličeje (Dense)
-        # 256 - množství neuronů, které vrstva obsahuje
-    model.add(tensorflow.keras.layers.Dense(256, activation="relu"))
-    # Tato vrstva dotváří finální obraz obličeje pomocí vektorů, využívá 128 neuronů 
-  
-    # Výstupní vrstva pro klasifikaci
-    if num_classes:
-        model.add(tensorflow.keras.layers.Dense(num_classes, activation="softmax"))
-    else:
-        model.add(tensorflow.keras.layers.Dense(128, activation="relu"))  # Embedding pro porovnání obličejů
-
-    # Kompilace modelu s categorical crossentropy pro více tříd
-    model.compile(
-        optimizer=tensorflow.keras.optimizers.Adam(learning_rate=0.001),
-        loss='categorical_crossentropy',
-        metrics=['accuracy']
-    )
-
-    # Vrácení modelu
-    return model
-
-# Funkce pro načtení a přípravu dat
-def load_data(dataset_directory):
-    data = []
-    labels = []
-    
-    for label in os.listdir(dataset_directory):
-        label_path = os.path.join(dataset_directory, label)
-        for photo_name in os.listdir(label_path):
-            photo_path = os.path.join(label_path, photo_name)
-            # Načtení obrázku
-            image = cv2.imread(photo_path)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Převod na RGB
-            image = cv2.resize(image, (128, 128))  # Změna velikosti
-            image = image.astype("float32")  # Normalizace (Bude odstraněna - použita jinde)
-
-            data.append(image)
-            labels.append(int(label))
-
-    # Vrácí data a příslučné labely
-    return numpy.array(data), numpy.array(labels)
-
-# Načtení dat
-train_data, train_labels = load_data(r"Program\dataset\preprocessed dataset (LFW)\train")
-test_data, test_labels = load_data(r"Program\dataset\preprocessed dataset (LFW)\test")
-
-# Převod štítků na one-hot encoding
-num_classes = len(os.listdir(r"Program\dataset\preprocessed dataset (LFW)\train"))
-train_labels = tensorflow.keras.utils.to_categorical(train_labels, num_classes)
-test_labels = tensorflow.keras.utils.to_categorical(test_labels, num_classes)
+# Funkce pro vytvoření modelu
+def build_model(input_shape, embedding_size):
+    inputs = tf.keras.Input(shape=input_shape)
+    x = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
+    x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = tf.keras.layers.Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = tf.keras.layers.Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+    x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(embedding_size, activation=None)(x)
+    outputs = tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1))(x)
+    return tf.keras.Model(inputs, outputs)
 
 # Vytvoření modelu
-model = create_face_recognition_model(input_shape=(128, 128, 3), num_classes=num_classes)
+model = build_model(IMG_SIZE, EMBEDDING_SIZE)
+model.summary()
+
+# Ztrátová funkce - triplet loss
+def triplet_loss(y_true, y_pred, margin=0.2):
+    anchor, positive, negative = tf.split(y_pred, num_or_size_splits=3, axis=0)
+    pos_dist = tf.reduce_sum(tf.square(anchor - positive), axis=1)
+    neg_dist = tf.reduce_sum(tf.square(anchor - negative), axis=1)
+    loss = tf.maximum(pos_dist - neg_dist + margin, 0.0)
+    return tf.reduce_mean(loss)
+
+# Kompilace modelu
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+              loss=triplet_loss)
+
+# Funkce pro předzpracování obrazu
+def preprocess_image(image_path):
+    image = tf.io.read_file(image_path)
+    image = tf.image.decode_jpeg(image, channels=3)
+    return tf.image.resize(image, IMG_SIZE[:2])
+
+# Funkce pro zajištění násobku 3
+def ensure_multiple_of_three(dataset):
+    def filter_batch(images, labels):
+        # Zjistíme velikost aktuální dávky
+        batch_size = tf.shape(images)[0]
+        # Pokud není násobkem 3, odstraníme přebytečné prvky
+        if batch_size % 3 != 0:
+            new_size = batch_size - (batch_size % 3)
+            return images[:new_size], labels[:new_size]
+        return images, labels
+
+    # Použijeme mapování s více argumenty
+    return dataset.map(filter_batch, num_parallel_calls=AUTOTUNE)
+
+# Funkce pro načtení a zpracování datasetu
+def load_dataset(data_dir, batch_size, is_training):
+    def process_path(file_path):
+        label = tf.strings.split(file_path, os.sep)[-2]  # Extrahování štítku z cesty
+        image = preprocess_image(file_path)
+        return image, label
+
+    list_ds = tf.data.Dataset.list_files(os.path.join(data_dir, '*/*.jpeg'), shuffle=is_training)
+    labeled_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
+
+    if is_training:
+        dataset = (labeled_ds
+                   .shuffle(buffer_size=1000)
+                   .batch(batch_size)
+                   .prefetch(buffer_size=AUTOTUNE))
+    else:
+        dataset = (labeled_ds
+                   .batch(batch_size)
+                   .prefetch(buffer_size=AUTOTUNE))
+
+    # Zajistíme, že dataset obsahuje pouze kompletní trojice
+    return ensure_multiple_of_three(dataset)
+
+# Cesty k datům
+train_dir = r'Program\dataset\preprocessed dataset (VGGFace2)\train'
+val_dir = r'Program\dataset\preprocessed dataset (VGGFace2)\test'
+
+# Načtení datasetů
+train_dataset = load_dataset(train_dir, BATCH_SIZE, is_training=True)
+val_dataset = load_dataset(val_dir, BATCH_SIZE, is_training=False)
+
+# Callback pro ukládání modelu
+checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath='model_checkpoints/epoch_{epoch:02d}.keras',
+    save_best_only=False,  # Ukládá model po každé epoše, ne jen ten nejlepší
+    save_weights_only=False,
+    verbose=1
+)
 
 # Trénování modelu
 history = model.fit(
-    train_data,
-    train_labels,
-    validation_data=(test_data, test_labels),
-    epochs=25,
-    batch_size=32,
-    shuffle=True
+    train_dataset, 
+    validation_data=val_dataset, 
+    epochs=15, 
+    verbose=1,
+    callbacks=[checkpoint_callback]
 )
 
+# Generování embeddings
+def generate_embeddings(model, img_path):
+    image = preprocess_image(img_path)
+    image = tf.expand_dims(image, axis=0)
+    embedding = model.predict(image, verbose=1)
+    return embedding
+
+# Porovnání embeddingů
+def cosine_similarity(emb1, emb2):
+    return np.dot(emb1, emb2.T) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+
 # Uložení modelu
-model.save("face_recognition_model.h5")
-print("Model byl úspěšně uložen jako 'face_recognition_model.h5'.")
+model.save('face_recognition_model.h5')
