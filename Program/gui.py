@@ -15,6 +15,7 @@ class NotificationWidget(QtWidgets.QLabel):
         self.setText(text)
         self.setStyleSheet(f"background-color: {background_color}; padding: 10px;")
         self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setMaximumHeight(70)
 
         # Automatické skrytí notifikace po 3 sekundách
         QtCore.QTimer.singleShot(3000, self.hide)
@@ -29,16 +30,65 @@ class NotificationWidget(QtWidgets.QLabel):
 class AboutPage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        layout = QtWidgets.QVBoxLayout(self)
-        label = QtWidgets.QLabel("0")
-        layout.addWidget(label)
+        self.init_ui()
+
+    def init_ui(self):
+        #Vytvoření hlavního layoutu
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.about_text = (
+"""<h1>O aplikaci</h1>
+
+<h2>1. Úvod a účel aplikace</h2>
+<p>
+Tato aplikace slouží k rozpoznávání obličejů na fotografiích a videích pomocí pokročilých algoritmů strojového učení. Uživatelům nabízí snadno použitelné rozhraní pro analýzu obrazu, správu databáze známých osob, konkrétně přidávání nových osob. Je navržena tak, aby ji mohl používat každý, bez nutnosti hlubokých technických znalostí.
+</p>
+
+<h2>2. Hlavní funkce</h2>
+<p>Aplikace nabízí následující klíčové funkce:</p>
+<ul>
+    <li><b>Rozpoznávání obličejů na fotografiích</b> – Nahrajte fotografii a aplikace identifikuje osoby na základě databáze známých osob.</li>
+    <li><b>Rozpoznávání obličejů z videa</b> – Automatická detekce obličejů ve videu a jejich analýza po jednotlivých snímcích.</li>
+    <li><b>Správa databáze osob</b> – Možnost přidávat nové osoby do databáze, pro přidání nové osoby je potřeba uložit její fotografii, ideálně více pro větší přesnost, jméno a přijmení.</li>
+    <li><b>Přehledný výstup výsledků</b> – Aplikace zobrazuje jasné výsledky detekce přímo v uživatelském rozhraní.</li>
+    <li><b>Jednoduché a intuitivní ovládání</b> – Uživatelé mohou provádět všechny operace bez složité konfigurace.</li>
+</ul>
+
+<h2>3. Autorské informace</h2>
+<p>
+Tuto aplikaci jsem vytvořil jako praktickou část maturitní práce s využitím moderních technologií pro zpracování obrazu a umělou inteligenci. Použité technologie zahrnují:
+</p>
+<ul>
+    <li>Python jako hlavní programovací jazyk.</li>
+    <li>OpenCV pro zpracování fotografií a videa.</li>
+    <li>Tensorflow pro vytvoření vlasního modelu.</li>
+    <li>Numpy pro efektivní výpočetní úkony.</li>
+    <li>Os pro práci s adresáři.</li>
+</ul>"""
+        )
+
+        self.label = QtWidgets.QLabel(self.about_text)
+        self.label.setWordWrap(True)  # Zalamování textu na nové řádky
+        self.label.setStyleSheet("font-size: 30px; padding: 10px;")
+
+        # QScrollArea, která umožní posouvání textu
+        self.scroll_area = QtWidgets.QScrollArea()
+        self.scroll_area.setWidget(self.label)  # Nastavení QLabel jako obsah scrollovací oblasti
+        self.scroll_area.setWidgetResizable(True)  # Umožní přizpůsobení velikosti
+        self.scroll_area.setStyleSheet("border: none;")  # Odstranění ohraničení
+
+        # Přidání scrollovací oblasti do hlavního layoutu
+        self.layout.addWidget(self.scroll_area)
+
+        # Nastavení hlavního layoutu
+        self.setLayout(self.layout)
+        self.resize(400, 300)
 
 class PhotoUploadPage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
         # Vytvoření hlavního layoutu
-        layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
 
         # Vytvoření layoutu, ve kterém se nachází uživatelem vložená fotka
         # Vytvoření rámu, do kterého se budou náhrávat fotky a jeho omezení
@@ -47,7 +97,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         self.frame.setStyleSheet("background-color: #b0b0b0;")
         # Nastavení minimální velikosti rámce, která zamezuje rapidnímu růstu okna po vložení fotky s příliš vysokou kvalitou
         self.frame.setMinimumSize(150, 100)
-        layout.addWidget(self.frame)
+        self.layout.addWidget(self.frame)
         # Vytvoření labelu, který vkládá obrázek do rámu
         self.image_label = QtWidgets.QLabel(self.frame) # Jeho základem je právě rám
         self.image_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -66,7 +116,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.button_load, 1)
         button_layout.addWidget(self.button_recognize, 2)
-        layout.addLayout(button_layout)
+        self.layout.addLayout(button_layout)
 
         # Proměnné
         ### Uložení nahraného obrázku pro QPixmap a OpenCV ###
@@ -163,7 +213,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         super().__init__()
 
         # Vytvoření hlavního layoutu
-        layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
 
         # Vytvoření layoutu, ve kterém se nachází prostor pro zobrazení kamery
         # Vytvoření rámu, ve kterém se bude zobrazovat video
@@ -172,7 +222,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         self.frame.setStyleSheet("background-color: #b0b0b0;")
         # Nastavení minimální velikosti rámce, která zamezuje rapidnímu růstu okna po zapnutí kamery
         self.frame.setMinimumSize(150, 100)
-        layout.addWidget(self.frame)
+        self.layout.addWidget(self.frame)
         # Vytvoření labelu, který vkládá video do rámu
         self.video_label = QtWidgets.QLabel(self.frame) # Jeho základem je právě rám
         self.video_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -191,7 +241,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.button_switching_camera, 1)
         button_layout.addWidget(self.button_face_recognize, 2)
-        layout.addLayout(button_layout)
+        self.layout.addLayout(button_layout)
 
         # Proměnné
         self.camera = None
@@ -361,7 +411,7 @@ class AddFacePage(QtWidgets.QWidget):
         self.save_button.clicked.connect(self.save_person)
         form_layout.addWidget(self.save_button)
 
-        # Additional area for displaying count of uploaded images
+        # Zobrazení počtu vložených obrázků
         self.image_count_label = QtWidgets.QLabel("Počet obrázků: 0")
         self.image_count_label.setAlignment(QtCore.Qt.AlignRight)
         form_layout.addWidget(self.image_count_label)
@@ -370,8 +420,7 @@ class AddFacePage(QtWidgets.QWidget):
 
         # Vložené data
         self.images = []
-        # Stará se o resize vloženého obrazu
-        self.loaded_image = None # Pro QPixmap
+        self.loaded_image = None # Pro QPixmap, stará se o resize načteného obrázku
 
     def upload_image(self):
         """
@@ -414,7 +463,7 @@ class AddFacePage(QtWidgets.QWidget):
             NotificationWidget.show_notification(self.layout, "Chyba, musí být nahrán alespoň jeden obrázek.")
             return
 
-        # Zde můžete implementovat uložení dat do databáze pomocí funkce ze souboru sql.py
+        # Zde se bude implementovat uložení dat do databáze pomocí funkce ze souboru sql.py
         # Například: sql.add_person(name, surname, embeddings)
 
         NotificationWidget.show_notification(self.layout, f"Osoba {name} {surname} byla uložena.", background_color="lightgreen")
