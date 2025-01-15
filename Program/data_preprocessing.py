@@ -112,18 +112,14 @@ class DataPreprocessing:
         preprocessed_faces = self.resizing_and_normalizing(cropped_faces)
         return preprocessed_faces
 
-    def draw_faces(self, faces, labels=None):
+    def draw_faces(self, faces):
         """
         Vykreslí zelený obdélník kolem detekovaných obličejů a přidá jméno pod každý obdélník.
         """
+        if not faces:
+            print("Nebyl detekován žádný obličej")
+            return self.data
         for idx, (x1, y1, x2, y2) in enumerate(faces):
             # Vykreslení obdélníku kolem obličeje
             cv2.rectangle(self.data, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Zelený obdélník (BRG)
-
-            # Přidání textu pod obdélník (jméno osoby nebo třídy)
-            label = labels[idx] if labels is not None else f"Face {idx+1}"
-            cv2.putText(self.data, label, (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-
         return self.data
-
-

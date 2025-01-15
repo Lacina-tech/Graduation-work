@@ -6,7 +6,22 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import cv2
 
 # Implementace modulu
+from data_preprocessing import DataPreprocessing
 from face_recognition import FaceRecognition
+from database import add_person_to_database
+
+# Funkce, která ztmavuje pozadá tlačítka, na které najela myš
+def darken_color(hex_color, factor=0.8):
+    color = QtGui.QColor(hex_color)
+    r, g, b = color.red(), color.green(), color.blue()
+    r = max(0, int(r * factor))
+    g = max(0, int(g * factor))
+    b = max(0, int(b * factor))
+    return QtGui.QColor(r, g, b).name()
+
+# Konstanty
+PRIMARY_COLOR = "#24477C"  # Hlavní barva
+HOVER_COLOR = darken_color(PRIMARY_COLOR, factor=0.8)  # Automaticky vytvořená tmavší barva
 
 # Třída pro vyskakovací notifikace
 class NotificationWidget(QtWidgets.QLabel):
@@ -154,10 +169,11 @@ class PhotoUploadPage(QtWidgets.QWidget):
         """        
         if self.cv_image is not None:
             # Inicializuje DataPreprocessing s nahraným obrázkem
-            processor = FaceRecognition(self.cv_image)
+            processor = DataPreprocessing(self.cv_image)
         
             # Rozpoznání obličeje
-            edited_image = processor.recognize()
+            detect = processor.detect_faces()
+            edited_image = processor.draw_faces(detect)
 
             # Změna typz barev z BRG na RGB (OpenCV používá BRG = tzn. bez převodu to změní barvy)
             edited_image = cv2.cvtColor(edited_image, cv2.COLOR_BGR2RGB)
@@ -193,7 +209,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         for button in [self.button_load, self.button_recognize]:
             button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #24477C;
+                    background-color: {PRIMARY_COLOR};
                     color: white;
                     font-size: {button_font_size}px;
                     font-family: Roboto;
@@ -203,7 +219,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
                     padding: 7px;
                 }}
                 QPushButton:hover {{
-                    background-color: #0066CC;
+                    background-color: {HOVER_COLOR};
                 }}
             """)
 
@@ -344,7 +360,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         for button in [self.button_switching_camera, self.button_face_recognize]:
             button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #24477C;
+                    background-color: {PRIMARY_COLOR};
                     color: white;
                     font-size: {button_font_size}px;
                     font-family: Roboto;
@@ -354,7 +370,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
                     padding: 7px;
                 }}
                 QPushButton:hover {{
-                    background-color: #0066CC;
+                    background-color: {HOVER_COLOR};
                 }}
             """)
 
@@ -421,6 +437,7 @@ class AddFacePage(QtWidgets.QWidget):
         # Vložené data
         self.images = []
         self.loaded_image = None # Pro QPixmap, stará se o resize načteného obrázku
+        self.cv_image = None
 
     def upload_image(self):
         """
@@ -431,8 +448,9 @@ class AddFacePage(QtWidgets.QWidget):
 
         # Pokud byl vložen soubor ve správném formátů, uloží se do proměnné self.loaded_image
         if image_path:
+            self.cv_image = cv2.imread(image_path)
             self.loaded_image = QtGui.QPixmap(image_path)
-            self.images.append(self.loaded_image)
+            self.images.append(self.cv_image)
             # Aktualizace počtu obrázků
             self.image_count_label.setText(f"Počet obrázků: {len(self.images)}")
             self.show_image()
@@ -463,8 +481,8 @@ class AddFacePage(QtWidgets.QWidget):
             NotificationWidget.show_notification(self.layout, "Chyba, musí být nahrán alespoň jeden obrázek.")
             return
 
-        # Zde se bude implementovat uložení dat do databáze pomocí funkce ze souboru sql.py
-        # Například: sql.add_person(name, surname, embeddings)
+        # Uložení osoby do databáze
+        add_person_to_database(name, surname, self.images)
 
         NotificationWidget.show_notification(self.layout, f"Osoba {name} {surname} byla uložena.", background_color="lightgreen")
         
@@ -492,7 +510,7 @@ class AddFacePage(QtWidgets.QWidget):
         for button in [self.upload_button, self.save_button]:
             button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #24477C;
+                    background-color: {PRIMARY_COLOR};
                     color: white;
                     font-size: {button_font_size}px;
                     font-family: Roboto;
@@ -502,15 +520,115 @@ class AddFacePage(QtWidgets.QWidget):
                     padding: 7px;
                 }}
                 QPushButton:hover {{
-                    background-color: #0066CC;
+                    background-color: {HOVER_COLOR};
                 }}
             """)
 
+class AdminMenu(QtWidgets.QDialog):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        
+        # Nastavení okna
+        self.setWindowTitle("Administrátorské menu")
+        self.setFixedSize(800, 600)
+
+        # Hlavní layout
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        # Vytvoření horní lišty na přepínání oken
+        self.tab_buttons_layout = QtWidgets.QHBoxLayout()
+        self.button_general = QtWidgets.QPushButton("Obecné")
+        self.button_general.clicked.connect(self.show_general_settings)
+        self.button_color = QtWidgets.QPushButton("Barvy")
+        self.button_color.clicked.connect(self.show_color_settings)
+
+        for button in [self.button_general, self.button_color]:
+            button.setCheckable(True)
+            button.setStyleSheet("""
+                QPushButton {
+                    font-size: 14px;
+                    padding: 5px 15px;
+                    background-color: #e0e0e0;
+                    border: 1px solid #b0b0b0;
+                }
+                QPushButton:checked {
+                    background-color: #d0d0d0;
+                    border-bottom: 2px solid #0078D7;
+                }
+            """)
+        self.tab_buttons_layout.addWidget(self.button_general)
+        self.tab_buttons_layout.addWidget(self.button_color)
+        self.layout.addLayout(self.tab_buttons_layout)
+
+        # Kontejner pro obsah jednotlivých "záložek"
+        self.content_area = QtWidgets.QStackedWidget(self)
+        self.layout.addWidget(self.content_area)
+
+        # Přidání jednotlivých stránek do obsahu
+        self.page_general = self.create_general_settings()
+        self.page_color = self.create_color_settings()
+        self.content_area.addWidget(self.page_general)
+        self.content_area.addWidget(self.page_color)
+
+        # Zvolí výchozí stránku
+        self.button_general.setChecked(True)
+        self.content_area.setCurrentWidget(self.page_general)
+
+    def create_general_settings(self):
+        """Vytvoří obsah pro obecné nastavení."""
+        page = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(page)
+
+        label = QtWidgets.QLabel("Na pokyny BaronMartina vytvořeno administrátorské menu.")
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(label)
+        layout.addStretch()  # Vyplní prostor
+
+        return page
+
+    def create_color_settings(self):
+        """Vytvoří obsah pro nastavení barev."""
+        page = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(page)
+
+        label = QtWidgets.QLabel("Vyberte barvu pro hlavní prvky:")
+        layout.addWidget(label)
+
+        self.color_picker = QtWidgets.QColorDialog(self)
+        self.color_picker.setOptions(QtWidgets.QColorDialog.NoButtons)  # Jen barevný panel
+        layout.addWidget(self.color_picker)
+
+        save_button = QtWidgets.QPushButton("Uložit barvu")
+        save_button.clicked.connect(self.save_color_settings)
+        layout.addWidget(save_button, alignment=QtCore.Qt.AlignRight)
+
+        layout.addStretch()
+
+        return page
+    
+    def save_color_settings(self):
+        """Uloží nastavení barvy."""
+        selected_color = self.color_picker.currentColor().name()
+        global PRIMARY_COLOR, HOVER_COLOR
+        PRIMARY_COLOR = selected_color
+        HOVER_COLOR = darken_color(PRIMARY_COLOR, factor=0.8)
+        #self.accept() # Zavře dialog
+
+        QtWidgets.QMessageBox.information(self, "Úspěch", "Barva byla nastavena.")
+    def show_general_settings(self):
+        """Zobrazí záložku s obecným nastavením."""
+        self.content_area.setCurrentWidget(self.page_general)
+        self.button_general.setChecked(True)
+        self.button_color.setChecked(False)
+
+    def show_color_settings(self):
+        """Zobrazí záložku s nastavením barev."""
+        self.content_area.setCurrentWidget(self.page_color)
+        self.button_color.setChecked(True)
+        self.button_general.setChecked(False)
+
 # Třída boční lišty
 class Sidebar(QtWidgets.QWidget):
-    # Konstanty pro barvu lišty 
-    SIDEBAR_COLOR = QtGui.QColor(36, 71, 124)
-
     def __init__(self, stacked_widget):
         super().__init__()
 
@@ -545,20 +663,46 @@ class Sidebar(QtWidgets.QWidget):
         self.sidebar_button_live_recording = self.create_sidebar_button("   Živé Snímání",r"Program\gui_pictures\sidebar\live_recording.png", 2)
         self.sidebar_button_add_face = self.create_sidebar_button("   Přidat Obličej",r"Program\gui_pictures\sidebar\add_face.png", 3)
 
-        # Umístí tlačítka do lišty
+        # Umístí přepínací tlačítka do lišty
         sidebar_layout.addWidget(self.sidebar_button_about)
         sidebar_layout.addWidget(self.sidebar_button_photo_upload)
         sidebar_layout.addWidget(self.sidebar_button_live_recording)
         sidebar_layout.addWidget(self.sidebar_button_add_face)
 
-        # Vyplní prostor pod tlačítky, diky čemu jsou tlačítka umístěna nahoře vedle sebe a nejsou roztáhlá po celé liště
+        # Vyplní prostor pod tlačítky, aby byly nahoře
         sidebar_layout.addStretch()
         
-        # Nastavení barvy pomocí QPalette (setStyleSheet nefungoval)
+        # Přidání adnimistrátorského tlačítka do spodní části lišty
+        self.admin_button = QtWidgets.QPushButton("⋮")
+        self.admin_button.setFixedSize(30, 30)
+        self.admin_button.setStyleSheet("""
+            QPushButton {
+                font-size: 26px;
+                font-weight: bold;
+                border: none;
+                background-color: transparent;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: lightgray;
+                border-radius: 15px;
+            }
+        """)
+        self.admin_button.clicked.connect(self.open_admin_menu) # Otevření admin menu
+        sidebar_layout.addWidget(self.admin_button, alignment=QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
+
+        # Nastavení počáteční barvy pomocí QPalette (setStyleSheet nefungoval)
+        self.update_background_color()
+
+    def update_background_color(self):
+        """
+        Aktualizuje barvu pozadí sidebaru
+        tato funkce je zde z důvodu změny barvy programu pomocí admin menu
+        """
         p = self.palette()
-        p.setColor(self.backgroundRole(), self.SIDEBAR_COLOR)  # Nastaví modrou barvu
+        p.setColor(self.backgroundRole(), QtGui.QColor(PRIMARY_COLOR))
         self.setPalette(p)
-        self.setAutoFillBackground(True)  # Zajistí, že se pozadí vyplní barvou
+        self.setAutoFillBackground(True)
 
     def create_sidebar_button(self, text, icon, page_index):
         button = QtWidgets.QPushButton(text)
@@ -566,6 +710,13 @@ class Sidebar(QtWidgets.QWidget):
         button.setIcon (QtGui.QIcon(icon))
         return button
     
+    def open_admin_menu(self):
+        """ Otevře administrátorské menu. """
+        admin_menu = AdminMenu(self)
+        admin_menu.exec_()
+        self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))  # Zavolá resizeEvent po změně barvy
+        self.update_background_color() # Zavoláme pro změnu barvy pozadí
+
     def resizeEvent(self, event):
         # Dynamické škálování textu a obrázku podle šířky sidebaru
         sidebar_width = self.size().width()
@@ -589,7 +740,7 @@ class Sidebar(QtWidgets.QWidget):
         for button in [self.sidebar_button_about, self.sidebar_button_photo_upload, self.sidebar_button_live_recording, self.sidebar_button_add_face]:
             button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {self.SIDEBAR_COLOR.name()};
+                    background-color: {PRIMARY_COLOR};
                     color: white;
                     font-size: {button_font_size}px;
                     font-family: Roboto;
@@ -599,7 +750,7 @@ class Sidebar(QtWidgets.QWidget):
                     padding: 7px;
                 }}
                 QPushButton:hover {{
-                    background-color: #0066CC;
+                    background-color: {HOVER_COLOR};
                 }}
             """)
 
