@@ -25,7 +25,7 @@ model = None # Glabální proměnná pro model
 def load_model():
     global model
     if model is None: # Kontrola, jesli už není načten
-        model_path = r"Program\face_recognition_model_fixed_02.h5"  # Ujistěte se, že model existuje
+        model_path = r"Program\my_face_recognition_model.h5"  # Ujistěte se, že model existuje
         model = tf.keras.models.load_model(
             model_path,
             custom_objects={
@@ -42,7 +42,7 @@ def generate_embedding(model, image):
 
 # Funkce pro vytvoření databáze SQLite pro metadata
 def create_database():
-    conn = sqlite3.connect(r'Program\face_metadata.db')
+    conn = sqlite3.connect(r'Program\database\face_metadata.db')
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS people (
@@ -59,7 +59,7 @@ def create_faiss_index(embedding_dim):
     return faiss.IndexFlatIP(embedding_dim)
 
 # Funkce pro uložení osoby do databáze
-def add_person_to_database(name, surname, images, metadata=r"Program\face_metadata.db", faiss_index_path=r"Program\faiss_index.bin"):
+def add_person_to_database(name, surname, images, metadata=r"Program\database\face_metadata.db", faiss_index_path=r"Program\database\faiss_index.bin"):
     global faiss_index
     
     model = load_model()
@@ -96,7 +96,7 @@ def save_faiss_index(index, filepath):
 # Inicializace aplikace
 create_database()
 embedding_dim = 128
-faiss_index_path = r"Program\faiss_index.bin"
+faiss_index_path = r"Program\database\faiss_index.bin"
 
 if os.path.exists(faiss_index_path):
     faiss_index = faiss.read_index(faiss_index_path)

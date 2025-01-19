@@ -126,7 +126,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         self.button_load = QtWidgets.QPushButton("Nahrát fotku", self)
         self.button_load.clicked.connect(self.upload_image)
         self.button_recognize = QtWidgets.QPushButton("Rozpoznat obličej", self)
-        self.button_recognize.clicked.connect(self.face_recognize)
+        #self.button_recognize.clicked.connect(self.face_recognize) # tlačítko pro rozpoznání obličeje nyní deaktivováno
         # Vytvoření layoutu a jeho napojení na hlavní layout
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.button_load, 1)
@@ -190,6 +190,20 @@ class PhotoUploadPage(QtWidgets.QWidget):
         else:
             print("Není nahraný žádný obrázek.")
 
+#
+#    def update_button_color(self):
+#        """Změna barvy tlačítek"""
+#        for button in [self.button_load, self.button_recognize]:
+#            button.setStyleSheet(f"""
+#                QpushButton {{
+#                    background-color: {PRIMARY_COLOR};
+#                }}
+#                QpushButton:hover{{
+#                    background-color: {HOVER_COLOR};
+#                }}
+#                """)
+
+
     def resizeEvent(self, event):
         """
         Upravuje velikost widgetů podle změny velikosti okna
@@ -252,7 +266,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         self.button_switching_camera = QtWidgets.QPushButton("Zapnout kameru", self)
         self.button_switching_camera.clicked.connect(self.toggle_camera)
         self.button_face_recognize = QtWidgets.QPushButton("Zapnout rozpoznávání obličeje", self)
-        self.button_face_recognize.clicked.connect(self.toggle_face_recognition)
+        #self.button_face_recognize.clicked.connect(self.toggle_face_recognition) # Tlačítko na rozpoznávání obličeje deaktivováno
         # Vytvoření layoutu a jeho napojení na hlavní layout
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.button_switching_camera, 1)
@@ -612,7 +626,12 @@ class AdminMenu(QtWidgets.QDialog):
         global PRIMARY_COLOR, HOVER_COLOR
         PRIMARY_COLOR = selected_color
         HOVER_COLOR = darken_color(PRIMARY_COLOR, factor=0.8)
-        #self.accept() # Zavře dialog
+
+        # Zavolá fuknci pro změnu barvy tlačítek ve všech stránkách
+        #photo_upload_page_instance = PhotoUploadPage()
+        #photo_upload_page_instance.update_button_color(selected_color)
+        
+        self.accept() # Zavře dialog
 
         QtWidgets.QMessageBox.information(self, "Úspěch", "Barva byla nastavena.")
     def show_general_settings(self):
@@ -716,7 +735,9 @@ class Sidebar(QtWidgets.QWidget):
         admin_menu.exec_()
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))  # Zavolá resizeEvent po změně barvy
         self.update_background_color() # Zavoláme pro změnu barvy pozadí
-
+        photo_upload_page_instance = PhotoUploadPage()
+        photo_upload_page_instance.update_button_color()
+        
     def resizeEvent(self, event):
         # Dynamické škálování textu a obrázku podle šířky sidebaru
         sidebar_width = self.size().width()
