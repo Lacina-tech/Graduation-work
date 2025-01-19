@@ -19,15 +19,20 @@ def triplet_loss(y_true, y_pred, margin=0.2):
     return tf.reduce_mean(tf.maximum(basic_loss, 0.0))
 
 # Funkce pro načtení modelu
+model = None # Glabální proměnná pro model
+
+# Funkce pro načtení modelu
 def load_model():
-    model_path = r"Program\face_recognition_model_fixed_02.h5"  # Ujistěte se, že model existuje
-    model = tf.keras.models.load_model(
-        model_path,
-        custom_objects={
+    global model
+    if model is None: # Kontrola, jesli už není načten
+        model_path = r"Program\face_recognition_model_fixed_02.h5"  # Ujistěte se, že model existuje
+        model = tf.keras.models.load_model(
+            model_path,
+            custom_objects={
             'L2Normalization': L2Normalization,
             'triplet_loss': triplet_loss
-        }
-    )
+            }
+        )
     return model
 
 # Funkce pro generování embeddingu
@@ -54,9 +59,8 @@ def create_faiss_index(embedding_dim):
     return faiss.IndexFlatIP(embedding_dim)
 
 # Funkce pro uložení osoby do databáze
-def add_person_to_database(name, surname, images, model, metadata=r"Program\face_metadata.db", faiss_index_path=r"Program\faiss_index.bin"):
+def add_person_to_database(name, surname, images, metadata=r"Program\face_metadata.db", faiss_index_path=r"Program\faiss_index.bin"):
     global faiss_index
-    
     
     model = load_model()
 
@@ -68,27 +72,17 @@ def add_person_to_database(name, surname, images, model, metadata=r"Program\face
     preprocessed_faces = []
     for img in images:
         preprocessor = DataPreprocessing(img)
-        preprocessed_face = preprocessor.preprocess_faces()
-        preprocessed_faces.append(preprocessed_face)
+        preprocessed_faces.append(preprocessor.preprocess_faces())
 
-    # Generování embeddingů
-    embeddings = []
-    for face in preprocessed_faces:
-        embedding = generate_embedding(model, face)
-        embeddings.append(embedding)
+    embeddings = [generate_embedding(model, face) for face in preprocessed_faces]
+    average_embedding = np.mean(embeddings, axis=0).astype("float32")
 
     # Průměrování embeddingů
     average_embedding = np.mean(embeddings, axis=0).astype("float32")  # Průměrná hodnota podél dimenzí embeddingů
 
     # Přidáníe mebedding do FAISS indexu
     faiss_index.add(np.array([average_embedding]))
-
-    # Uložení metadat do SQLite
-    c.execute('''
-        INSERT INTO people (name, surname) 
-        VALUES (?, ?)
-    ''', (name, surname))  # Ukládáme embedding jako BLOB
-
+    c.execute('INSERT INTO people (name, surname) VALUES (?, ?)', (name, surname))
     conn.commit()
     conn.close()
 
@@ -102,4 +96,9 @@ def save_faiss_index(index, filepath):
 # Inicializace aplikace
 create_database()
 embedding_dim = 128
-faiss_index = create_faiss_index(embedding_dim)
+faiss_index_path = r"Program\faiss_index.bin"
+
+if os.path.exists(faiss_index_path):
+    faiss_index = faiss.read_index(faiss_index_path)
+else:
+    faiss_index = create_faiss_index(embedding_dim)
