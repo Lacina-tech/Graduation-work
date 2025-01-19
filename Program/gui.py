@@ -8,7 +8,7 @@ import cv2
 # Implementace modulu
 from data_preprocessing import DataPreprocessing
 from face_recognition import FaceRecognition
-from database import add_person_to_database
+from database import DatabaseHandler
 
 # Funkce, která ztmavuje pozadá tlačítka, na které najela myš
 def darken_color(hex_color, factor=0.8):
@@ -496,7 +496,8 @@ class AddFacePage(QtWidgets.QWidget):
             return
 
         # Uložení osoby do databáze
-        add_person_to_database(name, surname, self.images)
+        processor = DatabaseHandler()
+        processor.add_person_to_database(name, surname, self.images)
 
         NotificationWidget.show_notification(self.layout, f"Osoba {name} {surname} byla uložena.", background_color="lightgreen")
         
