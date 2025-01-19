@@ -5,10 +5,11 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 import cv2
 
-# Implementace modulu
+# Implementace modulů
 from data_preprocessing import DataPreprocessing
 from face_recognition import FaceRecognition
-from database import DatabaseHandler
+from recoengine import DatabaseHandler, Matcher
+
 
 # Funkce, která ztmavuje pozadá tlačítka, na které najela myš
 def darken_color(hex_color, factor=0.8):
@@ -126,7 +127,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         self.button_load = QtWidgets.QPushButton("Nahrát fotku", self)
         self.button_load.clicked.connect(self.upload_image)
         self.button_recognize = QtWidgets.QPushButton("Rozpoznat obličej", self)
-        #self.button_recognize.clicked.connect(self.face_recognize) # tlačítko pro rozpoznání obličeje nyní deaktivováno
+        self.button_recognize.clicked.connect(self.face_recognize) # tlačítko pro rozpoznání obličeje nyní deaktivováno
         # Vytvoření layoutu a jeho napojení na hlavní layout
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.button_load, 1)
@@ -169,11 +170,10 @@ class PhotoUploadPage(QtWidgets.QWidget):
         """        
         if self.cv_image is not None:
             # Inicializuje DataPreprocessing s nahraným obrázkem
-            processor = DataPreprocessing(self.cv_image)
+            processor = Matcher()
         
             # Rozpoznání obličeje
-            detect = processor.detect_faces()
-            edited_image = processor.draw_faces(detect)
+            edited_image = processor.draw_faces_with_names(self.cv_image)
 
             # Změna typz barev z BRG na RGB (OpenCV používá BRG = tzn. bez převodu to změní barvy)
             edited_image = cv2.cvtColor(edited_image, cv2.COLOR_BGR2RGB)
@@ -496,6 +496,8 @@ class AddFacePage(QtWidgets.QWidget):
             return
 
         # Uložení osoby do databáze
+        processor = DatabaseHandler()
+        processor.add_person_to_database(name, surname, self.images)
         processor = DatabaseHandler()
         processor.add_person_to_database(name, surname, self.images)
 
