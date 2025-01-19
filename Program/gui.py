@@ -7,7 +7,6 @@ import cv2
 
 # Implementace modulů
 from data_preprocessing import DataPreprocessing
-from face_recognition import FaceRecognition
 from recoengine import DatabaseHandler, Matcher
 
 
@@ -266,7 +265,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         self.button_switching_camera = QtWidgets.QPushButton("Zapnout kameru", self)
         self.button_switching_camera.clicked.connect(self.toggle_camera)
         self.button_face_recognize = QtWidgets.QPushButton("Zapnout rozpoznávání obličeje", self)
-        #self.button_face_recognize.clicked.connect(self.toggle_face_recognition) # Tlačítko na rozpoznávání obličeje deaktivováno
+        self.button_face_recognize.clicked.connect(self.toggle_face_recognition) # Tlačítko na rozpoznávání obličeje deaktivováno
         # Vytvoření layoutu a jeho napojení na hlavní layout
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.button_switching_camera, 1)
@@ -334,11 +333,11 @@ class LiveRecordingPage(QtWidgets.QWidget):
 
                 # Pokud je zapnuté rozpoznávání obličeje, oznáčení čtverce
                 if self.face_recognition_active:
-                    # Inicializuje DataPreprocessing s aktuálním snímkem
-                    processor = FaceRecognition(frame)
 
+                    # Inicializuje Matcher s aktuálním snímkem
+                    processor = Matcher()
                     # Rozpoznání obličeje
-                    edited_video = processor.recognize()
+                    edited_video = processor.draw_faces_with_names(frame)
 
                     # Zobrazení upraveného snímku a jeho úprava do formátu pro QtPy po zapnutí rozpoznávání obličeje
                     edited_video = cv2.cvtColor(edited_video, cv2.COLOR_BGR2RGB)
