@@ -10,7 +10,7 @@ class L2Normalization(tf.keras.layers.Layer):
     def call(self, inputs, **kwargs):
         return tf.math.l2_normalize(inputs, axis=1)
 
-# Definicemtriplet loss funkce
+# Definice triplet loss funkce
 def triplet_loss(y_true, y_pred, margin=0.2):
     anchor, positive, negative = tf.split(y_pred, num_or_size_splits=3, axis=0)
     pos_dist = tf.reduce_sum(tf.square(anchor - positive), axis=1)
@@ -32,9 +32,8 @@ def load_model():
 
 # Funkce pro generování embeddingu
 def generate_embedding(model, image):
-    # Obrázek by měl být správně předzpracovaný (rozměry, normalizace)
-    embedding = model.predict(image)  # Přidáme batch dimenzi
-    return embedding[0]  # Vrátíme 1D embedding
+    embedding = model.predict(image)
+    return embedding[0]
 
 # Funkce pro vytvoření databáze SQLite pro metadata
 def create_database():
@@ -52,13 +51,15 @@ def create_database():
 
 # Funkce pro vytvoření FAISS indexu
 def create_faiss_index(embedding_dim):
-    index = faiss.IndexFlatIP(embedding_dim) # IP = Inner Product (používá se pro kosinovou podobnost u normalizovaných vektorů)
-    return index
+    return faiss.IndexFlatIP(embedding_dim)
 
-# Funkce pro uložení osoby do databáze FAISS a SQLite
-def add_person_to_database(name, surname, images, metadata=r"Program\face_metadata.db", faiss_index_path=r"Program\faiss_index.bin"):
+# Funkce pro uložení osoby do databáze
+def add_person_to_database(name, surname, images, model, metadata=r"Program\face_metadata.db", faiss_index_path=r"Program\faiss_index.bin"):
     global faiss_index
     
+    
+    model = load_model()
+
     model = load_model()
     conn = sqlite3.connect(metadata)
     c = conn.cursor()
@@ -94,11 +95,11 @@ def add_person_to_database(name, surname, images, metadata=r"Program\face_metada
     # Uložení Faiss indexu na disk
     save_faiss_index(faiss_index, faiss_index_path)
 
-# Funkce pro uložení Faiss indexu na disk
+# Funkce pro uložení FAISS indexu na disk
 def save_faiss_index(index, filepath):
     faiss.write_index(index, filepath)
 
-# Inicializace databáze
+# Inicializace aplikace
 create_database()
 embedding_dim = 128
 faiss_index = create_faiss_index(embedding_dim)
