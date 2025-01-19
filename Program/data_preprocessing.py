@@ -108,18 +108,7 @@ class DataPreprocessing:
         Funkce na předzpracování dat pro model RO
         """
         detected_faces = self.detect_faces()
+        print(f"Detekované obličeje: {detected_faces}")
         cropped_faces = self.crop_faces(detected_faces)
         preprocessed_faces = self.resizing_and_normalizing(cropped_faces)
         return preprocessed_faces
-
-    def draw_faces(self, faces):
-        """
-        Vykreslí zelený obdélník kolem detekovaných obličejů a přidá jméno pod každý obdélník.
-        """
-        if not faces:
-            print("Nebyl detekován žádný obličej")
-            return self.data
-        for idx, (x1, y1, x2, y2) in enumerate(faces):
-            # Vykreslení obdélníku kolem obličeje
-            cv2.rectangle(self.data, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Zelený obdélník (BRG)
-        return self.data
