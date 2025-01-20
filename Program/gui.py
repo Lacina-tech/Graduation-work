@@ -738,7 +738,7 @@ class Sidebar(QtWidgets.QWidget):
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))  # Zavolá resizeEvent po změně barvy
         self.update_background_color() # Zavoláme pro změnu barvy pozadí
         photo_upload_page_instance = PhotoUploadPage()
-        photo_upload_page_instance.update_button_color()
+        #photo_upload_page_instance.update_button_color()
         
     def resizeEvent(self, event):
         # Dynamické škálování textu a obrázku podle šířky sidebaru

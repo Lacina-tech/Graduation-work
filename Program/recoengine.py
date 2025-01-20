@@ -19,7 +19,7 @@ class L2Normalization(tf.keras.layers.Layer):
 
 # Třída se správou modelu, včetně jeho načítání
 class ModelHander:
-    def __init__(self, model_path=r"Program\my_face_recognition_model.h5"):
+    def __init__(self, model_path=r"Program\\my_face_recognition_model.h5"):
         self.model_path = model_path
         self.model = None
 
@@ -29,8 +29,8 @@ class ModelHander:
             self.model = tf.keras.models.load_model(
                 self.model_path,
                 custom_objects={
-                'L2Normalization': L2Normalization, # Registrace vlastní vrstvy
-                'triplet_loss': self.triplet_loss        # Registrace vlastní loss funkce
+                "L2Normalization": L2Normalization, # Registrace vlastní vrstvy
+                "triplet_loss": self.triplet_loss   # Registrace vlastní loss funkce
                 }
             )
         return self.model
@@ -47,10 +47,11 @@ class ModelHander:
         """ Generování embeddingu pomocí načteného modelu """
         model = self.load_model()
         embedding = model.predict(image)
-        return embedding[0]
+        normalized_embedding = tf.math.l2_normalize(embedding, axis=1)  # Zajištění normalizace embeddingu
+        return normalized_embedding[0].numpy()
 
 class DatabaseHandler:
-    def __init__ (self, embedding_dim=128, metadata_path=r"Program\database\face_metadata.db", faiss_index_path=r"Program\database\faiss_index.bin"):
+    def __init__ (self, embedding_dim=128, metadata_path=r"Program\\database\\face_metadata.db", faiss_index_path=r"Program\\database\\faiss_index.bin"):
         self.embedding_dim = embedding_dim
         self.metadata_path = metadata_path
         self.faiss_index_path = faiss_index_path
@@ -60,7 +61,7 @@ class DatabaseHandler:
 
     def create_database(self):
         """ Vytvoření SQLite databáze pro metadata """
-        conn = sqlite3.connect(r'Program\database\face_metadata.db')
+        conn = sqlite3.connect(r'Program\\database\\face_metadata.db')
         c = conn.cursor()
         c.execute('''
             CREATE TABLE IF NOT EXISTS people (
@@ -75,12 +76,28 @@ class DatabaseHandler:
     def load_or_create_faiss_index(self):
         """ Načtení FAISS indexu ze souboru nebo vytvoření nového """
         if os.path.exists(self.faiss_index_path):
-            return faiss.read_index(self.faiss_index_path)
-        return faiss.IndexFlatIP(self.embedding_dim)
+            index = faiss.read_index(self.faiss_index_path)
+            return index
+        print("Vytvořen nový FAISS index")
+        return faiss.IndexFlatIP(self.embedding_dim)  # Použití IP vzdálenosti
 
     def save_faiss_index(self):
-        """ Uložení FAISS indexu na disk"""
+        """ Uložení FAISS indexu na disk """
         faiss.write_index(self.faiss_index, self.faiss_index_path)
+
+    def validate_consistency(self):
+        """ Kontrola konzistence mezi SQLite databází a FAISS indexem """
+        conn = sqlite3.connect(self.metadata_path)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM people") # hvězdička :)
+        num_records = c.fetchone()[0]
+        conn.close()
+
+        num_embeddings = self.faiss_index.ntotal
+        print(f"Počet záznamů v databázi: {num_records}, počet embeddingů ve FAISS: {num_embeddings}")
+
+        if num_records != num_embeddings:
+            raise ValueError("Neshoda mezi počtem záznamů v databázi a FAISS indexu! Zajistěte konzistenci.")
 
     # Funkce pro uložení osoby do databáze
     def add_person_to_database(self, name, surname, images, model_handler=ModelHander()):
@@ -88,11 +105,19 @@ class DatabaseHandler:
         conn = sqlite3.connect(self.metadata_path)
         c = conn.cursor()
 
+        # Kontrola, zda osoba již existuje
+        c.execute("SELECT id FROM people WHERE name = ? AND surname = ?", (name, surname))
+        result = c.fetchone()
+        if result:
+            print(f"Osoba {name} {surname} již existuje v databázi se záznamem ID: {result[0]}")
+            conn.close()
+            return  # Pokud existuje, ukončí přidávání
+
         # Předzpracování obrázků
         preprocessed_faces = []
         for img in images:
             preprocessor = DataPreprocessing(img)
-            preprocessed_faces.append(preprocessor.preprocess_faces())
+            preprocessed_faces.extend(preprocessor.preprocess_faces())
 
         # Generování embeddingů
         embeddings = []
@@ -102,8 +127,9 @@ class DatabaseHandler:
             embedding = model_handler.generate_embedding(face)
             embeddings.append(embedding)
         average_embedding = np.mean(embeddings, axis=0).astype("float32")
+        print(f"Průměrný embedding uložen do FAISS: {average_embedding}")
 
-        # Přidání mebeddingu do FAISS indexu
+        # Přidání embeddingu do FAISS indexu
         self.faiss_index.add(np.array([average_embedding]))
 
         # Uložení metadat do SQLite databáze
@@ -114,8 +140,11 @@ class DatabaseHandler:
         # Uložení FAISS indexu na disk
         self.save_faiss_index()
 
+        # Kontrola konzistence
+        self.validate_consistency()
+
 class Matcher:
-    def __init__(self, metadata_path=r"Program\database\face_metadata.db", model_handler=ModelHander(), faiss_index_path=r"Program\database\faiss_index.bin", embedding_dim=128):
+    def __init__(self, metadata_path=r"Program\\database\\face_metadata.db", model_handler=ModelHander(), faiss_index_path=r"Program\\database\\faiss_index.bin", embedding_dim=128):
         self.metadata_path = metadata_path
         self.model_handler = model_handler
         self.faiss_index_path = faiss_index_path
@@ -130,7 +159,6 @@ class Matcher:
         """Předzpracuje data a vytvoří embeddingy """
         preprocessor = DataPreprocessing(image)
         preprocessed_faces = preprocessor.preprocess_faces()
-        print(f"Předzpracované obličeje: {len(preprocessed_faces)}")
 
         embeddings = []
         for face in preprocessed_faces:
@@ -149,19 +177,24 @@ class Matcher:
             raise ValueError(f"Dimenze dotazů ({query_embeddings.shape[1]}) nesouhlasí s dimenzí indexu ({self.faiss_index.d})")
         
         distances, indices = self.faiss_index.search(query_embeddings, top_k)
+        print(f"Vzdálenosti a indexy: {distances}, {indices}")
         return distances, indices
-    
+
     def get_name_by_index(self, index):
         """ Zjistí jméno osoby podle indexu z SQLite databáze"""
         conn = sqlite3.connect(self.metadata_path)
         c = conn.cursor()
-        c.execute("SELECT name, surname FROM people WHERE id = ?", (index + 1,))
+        corrected_index = int(index) + 1  # FAISS index začíná od 0, SQLite ID od 1
+        c.execute("SELECT name, surname FROM people WHERE id = ?", (corrected_index,))
         result = c.fetchone()
         conn.close()
+        print(result)
         if result:
+            print(f"Nalezeno jméno pro index {corrected_index}: {result[0]} {result[1]}")
             return f"{result[0]} {result[1]}"
+        print(f"Jméno nenalezeno pro index: {corrected_index}")
         return "Unknown"
-    
+
     def identify_people(self, image):
         """ Identifikuje všechny osoby na obrázku """
         embeddings = self.preprocess_and_embed(image)
@@ -173,25 +206,25 @@ class Matcher:
 
         identified_names = []
         for i, dist in enumerate(distances):
-            if dist[0] > 0.5: # Prahová hodnota
-                print(f"Neznámý obličej, vzdálenost od prahu: {dist[0] - 0.5:.4f}")
-                identified_names.append("Unknown")
-            else:
+            if dist[0] > 0.95: # Prahová hodnota
                 name = self.get_name_by_index(indices[i][0])
                 identified_names.append(name)
+            else:
+                print(f"Neznámý obličej, podobnost pod prahovou hodnotou: {dist[0]}")
+                identified_names.append("Unknown")
         return identified_names
-    
+
     def draw_faces_with_names(self, image):
-        """ Vykreslí okolo obličeje zelený obdelník a namíše k němu jméno osoby"""
+        """ Vykreslí okolo obličeje zelený obdelník a napíše k němu jméno osoby"""
         preprocessor = DataPreprocessing(image)
-        detected_faces = preprocessor.detect_faces() # Detekce obličeje
+        detected_faces = preprocessor.detect_faces()  # Detekce obličeje
         print(f"Detekované obličeje: {detected_faces}")
 
-        identified_names = self.identify_people(image) # Identifikace osob
+        identified_names = self.identify_people(image)  # Identifikace osob
         print(f"Identifikovaná jména: {identified_names}")
 
         for (x1, y1, x2, y2), name in zip(detected_faces, identified_names):
-            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2) # Vykreslení zeleného obdelníku
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Vykreslení zeleného obdelníku
             cv2.putText(image, name, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         return image
