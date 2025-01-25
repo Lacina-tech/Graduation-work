@@ -1,16 +1,15 @@
-# Modul, který obsahuje GUI v PyQt5 pro aplikaci RO
+# Modul, který obsahuje GUI v PyQt5 pro aplikaci RO.
+# GUI umožnujě rozpoznávání obličejů z obrázků, živého snímání a přidávání nových osob do databáze známých osob.
 # Autor: Lukáš Lacina 4.B <lacinal@jirovcovka.net>
 
 # Implementace knihoven
 from PyQt5 import QtWidgets, QtGui, QtCore
 import cv2
 
-# Implementace modulů
-from data_preprocessing import DataPreprocessing
+# Implementace modulu
 from recoengine import DatabaseHandler, Matcher
 
-
-# Funkce, která ztmavuje pozadá tlačítka, na které najela myš
+# Funkce, která ztmavuje pozadí tlačítka, tehdy, když na něj namířila myš
 def darken_color(hex_color, factor=0.8):
     color = QtGui.QColor(hex_color)
     r, g, b = color.red(), color.green(), color.blue()
@@ -21,7 +20,7 @@ def darken_color(hex_color, factor=0.8):
 
 # Konstanty
 PRIMARY_COLOR = "#24477C"  # Hlavní barva
-HOVER_COLOR = darken_color(PRIMARY_COLOR, factor=0.8)  # Automaticky vytvořená tmavší barva
+HOVER_COLOR = darken_color(PRIMARY_COLOR, factor=0.8)  # Automaticky vytvořená tmavší barva barvy hlavní
 
 # Třída pro vyskakovací notifikace
 class NotificationWidget(QtWidgets.QLabel):
@@ -78,6 +77,8 @@ Tuto aplikaci jsem vytvořil jako praktickou část maturitní práce s využit�
     <li>Tensorflow pro vytvoření vlasního modelu.</li>
     <li>Numpy pro efektivní výpočetní úkony.</li>
     <li>Os pro práci s adresáři.</li>
+    <li>SQLite databáze pro ukládání metadat o znamých osobách.</li>
+    <li>FAISS databáze pro ukládání embeddingů jednotlivých osob.</li>
 </ul>"""
         )
 
@@ -116,6 +117,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         # Vytvoření labelu, který vkládá obrázek do rámu
         self.image_label = QtWidgets.QLabel(self.frame) # Jeho základem je právě rám
         self.image_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.image_label.setText("Nahrajte obrázek")
         # Vytvoření layoutu, ve kterém se nachází rám s vloženou fotkou a jeho napojení na hlavní layout
         frame_layout = QtWidgets.QVBoxLayout(self.frame)
         frame_layout.setContentsMargins(0, 0, 0, 0) # Odstranění okrajů, aby se obrázek napojil až na oraje rámu
@@ -143,7 +145,7 @@ class PhotoUploadPage(QtWidgets.QWidget):
         Funkce nahraje obrázek, pokud byl vybrán správný formát
         """
         # Otevře výběr souborů
-        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyberte obrázek", "", "Image Files (*.png *.jpg *.bmp +.jpeg)")
+        image_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Vyberte obrázek", "", "Image Files (*.png *.jpg *.bmp *.jpeg)")
 
         # Pokud byl vložen soubor ve správném formátů, uloží se do proměnné self.loaded_image
         if image_path:
@@ -189,20 +191,6 @@ class PhotoUploadPage(QtWidgets.QWidget):
         else:
             print("Není nahraný žádný obrázek.")
 
-#
-#    def update_button_color(self):
-#        """Změna barvy tlačítek"""
-#        for button in [self.button_load, self.button_recognize]:
-#            button.setStyleSheet(f"""
-#                QpushButton {{
-#                    background-color: {PRIMARY_COLOR};
-#                }}
-#                QpushButton:hover{{
-#                    background-color: {HOVER_COLOR};
-#                }}
-#                """)
-
-
     def resizeEvent(self, event):
         """
         Upravuje velikost widgetů podle změny velikosti okna
@@ -212,8 +200,11 @@ class PhotoUploadPage(QtWidgets.QWidget):
         # Zjištění velikosti stránky
         page_width = self.size().width()
 
-        # Velikost
-        # Pokud obrázek existuje, upraví se jeho velikost při změně okna tak, jako se upravuje samotný rám, ve kterém je fotka vložena
+        # Dynamické přizpůsobení velikosti textu labelů
+        image_label_font_size = int(self.size().width() // 40)
+        self.image_label.setStyleSheet(f"font-size: {image_label_font_size}px; text-align: center;")
+
+        # Velikost obrázku, pokud existuje
         if self.loaded_image is not None:
             self.show_image()
 
@@ -236,7 +227,6 @@ class PhotoUploadPage(QtWidgets.QWidget):
                 }}
             """)
 
-
 class LiveRecordingPage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -255,6 +245,7 @@ class LiveRecordingPage(QtWidgets.QWidget):
         # Vytvoření labelu, který vkládá video do rámu
         self.video_label = QtWidgets.QLabel(self.frame) # Jeho základem je právě rám
         self.video_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.video_label.setText("Zapněte kameru")
         # Vytvoření layoutu, ve kterém se nachází rám s vloženým videem a jeho napojení na hlavní layout
         frame_layout = QtWidgets.QVBoxLayout(self.frame)
         frame_layout.setContentsMargins(0, 0, 0, 0) # Odstranění okrajů, aby se video napojil až na oraje rámu
@@ -362,6 +353,11 @@ class LiveRecordingPage(QtWidgets.QWidget):
 
         # Zjištění velikosti stránky
         page_width = self.size().width()
+
+
+        # Dynamické přizpůsobení velikosti textu labelů
+        video_label_font_size = int(self.size().width() // 40)
+        self.video_label.setStyleSheet(f"font-size: {video_label_font_size}px; text-align: center;")
 
         # Velikost
         # Pokud obrázek existuje, upraví se jeho velikost při změně okna tak, jako se upravuje samotný rám, ve kterém je fotka vložena
@@ -518,6 +514,21 @@ class AddFacePage(QtWidgets.QWidget):
         # Zjištění velikosti stránky
         page_width = self.size().width()
 
+        # Dynamické přizpůsobení velikosti vstupních polí
+        input_font_size = int(self.size().width() // 50)
+        self.name_input.setStyleSheet(f"font-size: {input_font_size}px; padding: 5px;")
+        self.surname_input.setStyleSheet(f"font-size: {input_font_size}px; padding: 5px;")
+
+        # Dynamické přizpůsobení velikosti textu labelů
+        info_font_size = int(self.size().width() // 60)
+        self.info_label.setStyleSheet(f"background-color: lightgray; padding: 5px; font-size: {info_font_size}px;")
+
+        image_label_font_size = int(self.size().width() // 40)
+        self.image_label.setStyleSheet(f"font-size: {image_label_font_size}px; text-align: center;")
+
+        image_count_label_font_size = int(self.size().width() // 70)
+        self.image_count_label.setStyleSheet(f"font-size: {image_count_label_font_size}px; text-align: center;")
+
         if self.loaded_image is not None:
             self.show_image()
 
@@ -636,6 +647,7 @@ class AdminMenu(QtWidgets.QDialog):
         self.accept() # Zavře dialog
 
         QtWidgets.QMessageBox.information(self, "Úspěch", "Barva byla nastavena.")
+
     def show_general_settings(self):
         """Zobrazí záložku s obecným nastavením."""
         self.content_area.setCurrentWidget(self.page_general)
@@ -737,8 +749,6 @@ class Sidebar(QtWidgets.QWidget):
         admin_menu.exec_()
         self.resizeEvent(QtGui.QResizeEvent(self.size(), self.size()))  # Zavolá resizeEvent po změně barvy
         self.update_background_color() # Zavoláme pro změnu barvy pozadí
-        photo_upload_page_instance = PhotoUploadPage()
-        #photo_upload_page_instance.update_button_color()
         
     def resizeEvent(self, event):
         # Dynamické škálování textu a obrázku podle šířky sidebaru

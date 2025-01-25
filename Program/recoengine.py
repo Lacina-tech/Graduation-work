@@ -30,7 +30,7 @@ class ModelHander:
                 self.model_path,
                 custom_objects={
                 "L2Normalization": L2Normalization, # Registrace vlastní vrstvy
-                "triplet_loss": self.triplet_loss   # Registrace vlastní loss funkce
+                "triplet_loss": self.triplet_loss,   # Registrace vlastní loss funkce
                 }
             )
         return self.model
@@ -47,8 +47,8 @@ class ModelHander:
         """ Generování embeddingu pomocí načteného modelu """
         model = self.load_model()
         embedding = model.predict(image)
-        normalized_embedding = tf.math.l2_normalize(embedding, axis=1)  # Zajištění normalizace embeddingu
-        return normalized_embedding[0].numpy()
+        #normalized_embedding = tf.math.l2_normalize(embedding, axis=1)  # Zajištění normalizace embeddingu
+        return embedding[0]#.numpy()
 
 class DatabaseHandler:
     def __init__ (self, embedding_dim=128, metadata_path=r"Program\\database\\face_metadata.db", faiss_index_path=r"Program\\database\\faiss_index.bin"):
@@ -156,7 +156,7 @@ class Matcher:
             self.faiss_index = faiss.IndexFlatIP(self.embedding_dim)
 
     def preprocess_and_embed(self, image):
-        """Předzpracuje data a vytvoří embeddingy """
+        """  Předzpracuje data a vytvoří embeddingy """
         preprocessor = DataPreprocessing(image)
         preprocessed_faces = preprocessor.preprocess_faces()
 
@@ -206,7 +206,7 @@ class Matcher:
 
         identified_names = []
         for i, dist in enumerate(distances):
-            if dist[0] > 0.95: # Prahová hodnota
+            if dist[0] > 0.995: # Prahová hodnota
                 name = self.get_name_by_index(indices[i][0])
                 identified_names.append(name)
             else:
