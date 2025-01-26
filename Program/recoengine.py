@@ -8,6 +8,7 @@ import numpy as np
 import faiss
 import os
 import cv2
+from PIL import Image, ImageDraw, ImageFont
 
 # Implementace modulu
 from data_preprocessing import DataPreprocessing
@@ -19,9 +20,10 @@ class L2Normalization(tf.keras.layers.Layer):
 
 # Třída se správou modelu, včetně jeho načítání
 class ModelHander:
-    def __init__(self, model_path=r"Program\\my_face_recognition_model.h5"):
+    def __init__(self, model_path=r"Program\\my_face_recognition_model_03.h5"):
         self.model_path = model_path
         self.model = None
+
 
     def load_model(self):
         """ Při prvním zavolání načte model"""
@@ -30,7 +32,7 @@ class ModelHander:
                 self.model_path,
                 custom_objects={
                 "L2Normalization": L2Normalization, # Registrace vlastní vrstvy
-                "triplet_loss": self.triplet_loss,   # Registrace vlastní loss funkce
+                "triplet_loss": self.triplet_loss   # Registrace vlastní loss funkce
                 }
             )
         return self.model
@@ -193,7 +195,7 @@ class Matcher:
             print(f"Nalezeno jméno pro index {corrected_index}: {result[0]} {result[1]}")
             return f"{result[0]} {result[1]}"
         print(f"Jméno nenalezeno pro index: {corrected_index}")
-        return "Unknown"
+        return "Neznámý"
 
     def identify_people(self, image):
         """ Identifikuje všechny osoby na obrázku """
@@ -211,20 +213,60 @@ class Matcher:
                 identified_names.append(name)
             else:
                 print(f"Neznámý obličej, podobnost pod prahovou hodnotou: {dist[0]}")
-                identified_names.append("Unknown")
+                identified_names.append("Neznámý")
         return identified_names
 
     def draw_faces_with_names(self, image):
-        """ Vykreslí okolo obličeje zelený obdelník a napíše k němu jméno osoby"""
+        """ Vykreslí okolo obličeje obdelník a napíše k němu jméno osoby"""
         preprocessor = DataPreprocessing(image)
-        detected_faces = preprocessor.detect_faces()  # Detekce obličeje
+        detected_faces = preprocessor.detect_faces()  # Detekce obličejů
         print(f"Detekované obličeje: {detected_faces}")
 
         identified_names = self.identify_people(image)  # Identifikace osob
         print(f"Identifikovaná jména: {identified_names}")
 
+        # Převod OpenCV obrazu na PIL Image pro vykreslení textu
+        image_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(image_pil)
+
+        # Načtení fontu s podporou diakritiky
+        try:
+            font_path = "arial.ttf" 
+            base_font = ImageFont.truetype(font_path)
+        except IOError:
+            print("Font 'arial.ttf' nenalezen. Používá se výchozí font Pillow.")
+            base_font = ImageFont.load_default()  # Výchozí font Pillow
+
         for (x1, y1, x2, y2), name in zip(detected_faces, identified_names):
-            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Vykreslení zeleného obdelníku
-            cv2.putText(image, name, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            # Výpočet rozměrů obdélníku
+            rect_width = x2 - x1
+            rect_height = y2 - y1
+            rect_area = rect_width * rect_height
+
+            # Dynamické nastavení tloušťky čáry a velikosti fontu
+            line_thickness = max(1, min(10, rect_area // 15000))    # Optimalizace tloušťky čáry
+            font_size = max(20, min(100, rect_area // 2000))        # Optimalizace velikosti textu
+
+            # Načtení fontu s dynamickou velikostí
+            if isinstance(base_font, ImageFont.FreeTypeFont):
+                font = ImageFont.truetype(font_path, size=font_size)
+            else:
+                font = base_font
+
+            # Rozhodnutí o barvě obdélníku
+            if name == "Neznámý":
+                color = (255, 0, 0)  # Červená barva pro neznámý obličej
+            else:
+                color = (0, 255, 0)  # Zelená barva pro známý obličej
+
+            # Vykreslení obdélníku na obrázek pomocí Pillow
+            draw.rectangle([(x1, y1), (x2, y2)], outline=color, width=line_thickness)
+
+            # Vykreslení textu s podporou diakritiky
+            text_position = (x1, y1 - font_size - 5)  # Pozice textu nad obdélníkem
+            draw.text(text_position, name, fill=color, font=font)
+
+        # Převod PIL Image zpět na OpenCV formát
+        image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
         return image
