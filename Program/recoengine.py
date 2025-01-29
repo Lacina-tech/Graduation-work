@@ -25,8 +25,6 @@ class ModelHandler:
         self.model_path = model_path
         self.model = None
 
-
-
     def load_model(self):
         """ Při prvním zavolání načte model"""
         if self.model is None: # Kontrola, jesli už není načten
@@ -52,8 +50,7 @@ class ModelHandler:
         """ Generování embeddingu pomocí načteného modelu """
         model = self.load_model()
         embedding = model.predict(image)
-        #normalized_embedding = tf.math.l2_normalize(embedding, axis=1)  # Zajištění normalizace embeddingu
-        return embedding[0]#.numpy()
+        return embedding[0]
 
 class DatabaseHandler:
     def __init__ (self, embedding_dim=128, metadata_path=r"Program\\database\\face_metadata.db", faiss_index_path=r"Program\\database\\faiss_index.bin"):
