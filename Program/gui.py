@@ -606,7 +606,7 @@ class AdminMenu(QtWidgets.QDialog):
         page = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(page)
 
-        label = QtWidgets.QLabel("Na pokyny BaronMartina vytvořeno administrátorské menu.")
+        label = QtWidgets.QLabel("Administrátorské menu pro možné využití v budoucnu.")
         label.setAlignment(QtCore.Qt.AlignCenter)
         layout.addWidget(label)
         layout.addStretch()  # Vyplní prostor
