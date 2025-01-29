@@ -14,6 +14,11 @@ EMBEDDING_SIZE = 128        # Velikost embeddingu (počet čísel ve výstupu mo
 BATCH_SIZE = 144            # Počet obrázků v jedné dávce
 AUTOTUNE = tf.data.AUTOTUNE # Automatická optimalizace pro načítání dat
 
+# Vlastní vrstva pro L2 normalizaci
+class L2Normalization(tf.keras.layers.Layer):
+    def call(self, inputs):
+        return tf.math.l2_normalize(inputs, axis=1)
+    
 # Funkce pro vytvoření modelu
 def build_model(input_shape, embedding_size):
     """
@@ -45,7 +50,7 @@ def build_model(input_shape, embedding_size):
     x = tf.keras.layers.Dense(embedding_size, activation=None)(x)
 
     # Normalizace embeddingu na jednotkovou délku
-    outputs = tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1), output_shape=(embedding_size,))(x)
+    outputs = L2Normalization()(x)
     return tf.keras.Model(inputs, outputs)
 
 # Vytvoření a shrnutí modelu
@@ -53,7 +58,7 @@ model = build_model(IMG_SIZE, EMBEDDING_SIZE)
 model.summary()
 
 # Ztrátová funkce - triplet loss
-def triplet_loss(y_true, y_pred, margin=0.2):
+def triplet_loss(y_true, y_pred, margin=1.5):
     """
     Funkce triplet loss slouží pro učení vytváření embeddingů. Zajišťuje, že pozitivní příklady jsou blíže k anchor než negativní příklady
     Vstup:
