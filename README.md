@@ -4,6 +4,7 @@ Tento repozitář obsahuje složku Program se softwarem pro praktickou část m�
 *** **Program** ***
 
 **Obsah:**
+
     data_preprocessing.py
     dataset_preparation.py
     gui.py
