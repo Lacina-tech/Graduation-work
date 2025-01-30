@@ -1,5 +1,5 @@
 # Graduation-work
-Tento repozitář osbsahuje složku Program se softwarem pro praktickou část mé maturitní práce na téma rozpoznávání obličeje pomocí strojového učení
+Tento repozitář obsahuje složku Program se softwarem pro praktickou část mé maturitní práce na téma rozpoznávání obličeje pomocí strojového učení
 
 *** **Program** ***
 
