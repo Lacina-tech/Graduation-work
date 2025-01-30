@@ -16,6 +16,7 @@ Tento repozitář obsahuje složku Program se softwarem pro praktickou část m�
     složka DNN
 
 **Potřebné instalace a knihovny**
+
     Software běží na programovacím jazyce Python na verzi 3.10
 
     Potřebná instalace knihoven:
