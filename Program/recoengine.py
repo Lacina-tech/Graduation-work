@@ -33,7 +33,6 @@ class ModelHandler:
                 custom_objects={
                 "L2Normalization": L2Normalization, # Registrace vlastní vrstvy
                 "triplet_loss": self.triplet_loss   # Registrace vlastní loss funkce
-                "triplet_loss": self.triplet_loss   # Registrace vlastní loss funkce
                 }
             )
         return self.model
@@ -278,8 +277,8 @@ class Matcher:
             text_position = (x1, y1 - font_size - 5)  # Pozice textu nad obdélníkem
             draw.text(text_position, name, fill=color, font=font)
 
-        # Převod PIL Image zpět na OpenCV formát
-        image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
+            # Převod PIL Image zpět na OpenCV formát
+            image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
             # Výpočet rozměrů obdélníku
             rect_width = x2 - x1
             rect_height = y2 - y1
