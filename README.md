@@ -17,7 +17,7 @@ Tento repozitář osbsahuje složku Program se softwarem pro praktickou část m
 **Potřebné instalace a knihovny**
     Software běží na programovacím jazyce Python na verzi 3.10
 
-    **Potřebná instalace knihoven:**
+    Potřebná instalace knihoven:
     
     Tensorflow - pip install tensorflow
     OpenCV - pip install opencv-python
